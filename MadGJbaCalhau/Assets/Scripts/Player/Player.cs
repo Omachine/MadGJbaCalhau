@@ -39,7 +39,8 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
-        _rb.linearVelocity = new Vector2(_horizontalInput * moveSpeed, _rb.linearVelocity.y);
+        float tirednessMultiplier = DayManager.Instance != null ? DayManager.Instance.SpeedMultiplier : 1f;
+        _rb.linearVelocity = new Vector2(_horizontalInput * moveSpeed * tirednessMultiplier, _rb.linearVelocity.y);
     }
 
     // ── Flip ───────────────────────────────────────────────────────────────
