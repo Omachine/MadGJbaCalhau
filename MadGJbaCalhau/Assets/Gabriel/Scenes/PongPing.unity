@@ -267,7 +267,7 @@ Transform:
   m_GameObject: {fileID: 650695339}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10.14, y: 0.03169, z: 0}
+  m_LocalPosition: {x: -8.02, y: 0.03169, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -450,7 +450,7 @@ Transform:
   m_GameObject: {fileID: 1044070071}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10.6084, y: 0.055, z: 0}
+  m_LocalPosition: {x: 8.33, y: 0.055, z: 0}
   m_LocalScale: {x: 0.9767232, y: 10.051217, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -765,10 +765,12 @@ MonoBehaviour:
   zHeight: 0
   zVelocity: 0
   gravity: 15
-  jumpForce: 12
+  jumpForce: 11
   ballVisual: {fileID: 1624659543}
   ballShadow: {fileID: 883563749}
   minNetHeight: 0.5
+  topBoundary: 4.5
+  bottomBoundary: -4.5
 --- !u!4 &1652273035
 Transform:
   m_ObjectHideFlags: 0
