@@ -4,10 +4,13 @@
 TagManager:
   serializedVersion: 3
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   tags:
   - Paddle
   - Wall
 =======
+=======
+>>>>>>> Stashed changes
   tags: []
 >>>>>>> Stashed changes
   layers:

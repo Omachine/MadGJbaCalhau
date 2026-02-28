@@ -1,4 +1,5 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!29 &1
@@ -1215,6 +1216,8 @@ SceneRoots:
   - {fileID: 3010000002}
   - {fileID: 3011000002}
 =======
+=======
+>>>>>>> Stashed changes
 ﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!29 &1
@@ -2381,4 +2384,7 @@ SceneRoots:
   - {fileID: 3000000002}
   - {fileID: 3010000002}
   - {fileID: 3011000002}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
