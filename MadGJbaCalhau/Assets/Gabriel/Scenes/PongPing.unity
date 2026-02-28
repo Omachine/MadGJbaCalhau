@@ -150,14 +150,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a804bfd4813a6d84b8945369c937a96b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PaddleController
-  isPlayerTwo: 0
+  isPlayerTwo: 1
+  isAI: 0
+  aiDifficulty: 1
   speed: 12
   topLimit: 4
   bottomLimit: -4
   leftLimit: -8
   rightLimit: -1
   baseHorizontalForce: 12
-  baseVerticalForce: 8
+  baseVerticalForce: 4
+  baseCurveForce: 25
   maxChargeMultiplier: 2.5
 --- !u!61 &650695341
 BoxCollider2D:
@@ -448,6 +451,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PaddleController
   isPlayerTwo: 1
+  isAI: 0
+  aiDifficulty: 1
   speed: 12
   topLimit: 4
   bottomLimit: -4
@@ -455,6 +460,7 @@ MonoBehaviour:
   rightLimit: 8
   baseHorizontalForce: 12
   baseVerticalForce: 8
+  baseCurveForce: 25
   maxChargeMultiplier: 2.5
 --- !u!61 &831059523
 BoxCollider2D:
@@ -1111,6 +1117,9 @@ MonoBehaviour:
   player1ScoreText: {fileID: 1773825529}
   player2ScoreText: {fileID: 751689032}
   isPointActive: 1
+  maxPaddleReach: 2.5
+  currentCurve: 0
+  pendingCurve: 0
 --- !u!4 &1652273035
 Transform:
   m_ObjectHideFlags: 0

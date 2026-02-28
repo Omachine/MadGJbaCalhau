@@ -1,7 +1,7 @@
 using UnityEngine;
-using UnityEngine.UI; 
-using System.Collections; 
-using TMPro; 
+using UnityEngine.UI; // Necessário para usar elementos de UI como Text
+using System.Collections; // Necessário para usar Coroutines (pausas)
+using TMPro; // Adicionado: Necessário para usar o novo sistema de texto TextMeshPro
 
 public class BouncingBall2D : MonoBehaviour
 {
@@ -30,13 +30,16 @@ public class BouncingBall2D : MonoBehaviour
     public float rightOutBoundary = 10f;
 
     [Header("Score UI")]
-    public TextMeshProUGUI player1ScoreText;
-    public TextMeshProUGUI player2ScoreText; 
+    public TextMeshProUGUI player1ScoreText; // Alterado para TextMeshProUGUI
+    public TextMeshProUGUI player2ScoreText; // Alterado para TextMeshProUGUI
     private int player1Score = 0;
     private int player2Score = 0;
 
     [Header("Game Logic")]
     public bool isPointActive = true;
+    public float maxPaddleReach = 2.5f;
+    public float currentCurve = 0f; // Curva ativa no ar
+    public float pendingCurve = 0f; // NOVA VARIÁVEL: Curva à espera do quique na mesa
     private int bouncesOnCurrentSide = 0;
     private float lastBounceSide = 0f;
 
@@ -58,6 +61,8 @@ public class BouncingBall2D : MonoBehaviour
     {
         if (!hitNet && isPointActive)
         {
+            // Aplica a força de curva ao longo do tempo (só terá valor depois de bater na mesa)
+            planeVelocity.y += currentCurve * Time.deltaTime;
             transform.Translate(planeVelocity * Time.deltaTime);
         }
 
@@ -72,6 +77,13 @@ public class BouncingBall2D : MonoBehaviour
                 zVelocity = Mathf.Abs(zVelocity) * 0.75f;
 
                 if (zVelocity < 1.5f) zVelocity = 0f;
+
+                // NOVA LÓGICA: Ativa o efeito da curva apenas ao bater na mesa
+                if (pendingCurve != 0f)
+                {
+                    currentCurve = pendingCurve; // Inicia a curva no ar após o quique
+                    pendingCurve = 0f; // Limpa para não aplicar de novo
+                }
 
                 RegisterBounce();
             }
@@ -91,6 +103,8 @@ public class BouncingBall2D : MonoBehaviour
         zVelocity = jumpForce;
         hitNet = false;
         bouncesOnCurrentSide = 0;
+        currentCurve = 0f; // RESET À CURVA
+        pendingCurve = 0f; // RESET À CURVA PENDENTE
     }
 
     public void StartNewPoint(Vector2 initialDirection)
@@ -117,6 +131,7 @@ public class BouncingBall2D : MonoBehaviour
             bouncesOnCurrentSide++;
         }
 
+        // Bater mais de uma vez = Ponto perdido
         if (bouncesOnCurrentSide >= 2)
         {
             string winner = currentSide < 0 ? "Jogador da Direita" : "Jogador da Esquerda";
@@ -164,7 +179,7 @@ public class BouncingBall2D : MonoBehaviour
         {
             player1Score++;
             if (player1ScoreText != null) player1ScoreText.text = player1Score.ToString();
-            serveDirectionX = 1f; 
+            serveDirectionX = 1f;
         }
         else
         {
@@ -179,7 +194,6 @@ public class BouncingBall2D : MonoBehaviour
     private IEnumerator WaitAndReset(float serveDirectionX)
     {
         yield return new WaitForSeconds(2f);
-
         StartNewPoint(new Vector2(serveDirectionX * 6f, 0f));
     }
 
@@ -221,25 +235,45 @@ public class BouncingBall2D : MonoBehaviour
 
         if (collision.CompareTag("Paddle"))
         {
-            PaddleController paddle = collision.GetComponent<PaddleController>();
-
-            if (paddle != null)
+            if (zHeight > maxPaddleReach)
             {
-                float forcaHorizontal, forcaVertical;
-                paddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical);
+                UnityEngine.Debug.Log("A bola passou por cima da raquete!");
+                return;
+            }
 
-                if (paddle.isPlayerTwo)
-                    planeVelocity.x = -Mathf.Abs(forcaHorizontal);
-                else
-                    planeVelocity.x = Mathf.Abs(forcaHorizontal); 
+            // Tenta ir buscar o Player, se não existir, tenta ir buscar a IA
+            PlayerPaddle playerPaddle = collision.GetComponent<PlayerPaddle>();
+            AIPaddle aiPaddle = collision.GetComponent<AIPaddle>();
 
-                zVelocity = forcaVertical;
+            float forcaHorizontal = 10f, forcaVertical = jumpForce, forcaCurva = 0f;
+            bool isPlayerTwo = false;
+
+            if (playerPaddle != null)
+            {
+                playerPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva);
+                isPlayerTwo = playerPaddle.isPlayerTwo;
+            }
+            else if (aiPaddle != null)
+            {
+                aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva);
+                isPlayerTwo = aiPaddle.isPlayerTwo;
             }
             else
             {
-                planeVelocity.x = 10f;
-                zVelocity = jumpForce;
+                // Fallback de segurança se esqueceres os scripts
+                forcaHorizontal = 10f;
+                forcaVertical = jumpForce;
+                forcaCurva = 0f;
             }
+
+            if (isPlayerTwo)
+                planeVelocity.x = -Mathf.Abs(forcaHorizontal);
+            else
+                planeVelocity.x = Mathf.Abs(forcaHorizontal);
+
+            zVelocity = forcaVertical;
+            pendingCurve = forcaCurva;
+            currentCurve = 0f;
 
             float hitOffset = transform.position.y - collision.transform.position.y;
             planeVelocity.y = hitOffset * 4f;
@@ -253,6 +287,8 @@ public class BouncingBall2D : MonoBehaviour
             zVelocity = jumpForce;
             hitNet = false;
             bouncesOnCurrentSide = 0;
+            pendingCurve = 0f;
+            currentCurve = 0f;
         }
     }
 
