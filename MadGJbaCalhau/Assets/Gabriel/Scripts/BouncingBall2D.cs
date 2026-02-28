@@ -1,7 +1,7 @@
 using UnityEngine;
-using UnityEngine.UI; // Necessário para usar elementos de UI como Text
-using System.Collections; // Necessário para usar Coroutines (pausas)
-using TMPro; // Adicionado: Necessário para usar o novo sistema de texto TextMeshPro
+using UnityEngine.UI;
+using System.Collections;
+using TMPro;
 
 public class BouncingBall2D : MonoBehaviour
 {
@@ -30,16 +30,17 @@ public class BouncingBall2D : MonoBehaviour
     public float rightOutBoundary = 10f;
 
     [Header("Score UI")]
-    public TextMeshProUGUI player1ScoreText; // Alterado para TextMeshProUGUI
-    public TextMeshProUGUI player2ScoreText; // Alterado para TextMeshProUGUI
+    public TextMeshProUGUI player1ScoreText;
+    public TextMeshProUGUI player2ScoreText;
     private int player1Score = 0;
     private int player2Score = 0;
 
     [Header("Game Logic")]
-    public bool isPointActive = true;
+    public bool isPointActive = false;
+    public bool isServing = false;
     public float maxPaddleReach = 2.5f;
-    public float currentCurve = 0f; // Curva ativa no ar
-    public float pendingCurve = 0f; // NOVA VARIÁVEL: Curva à espera do quique na mesa
+    public float currentCurve = 0f;
+    public float pendingCurve = 0f;
     private int bouncesOnCurrentSide = 0;
     private float lastBounceSide = 0f;
 
@@ -50,18 +51,27 @@ public class BouncingBall2D : MonoBehaviour
     void Start()
     {
         previousXPosition = transform.position.x;
-        // Inicia com os textos a 0
         if (player1ScoreText != null) player1ScoreText.text = "0";
         if (player2ScoreText != null) player2ScoreText.text = "0";
 
-        ApplyImpulse(new Vector2(6f, 0f));
+        isPointActive = false;
+        isServing = false;
+
+        StartCoroutine(WaitAndServe(1f));
     }
 
     void Update()
     {
+        if (isServing)
+        {
+            // Altura mais baixa (1.5f) para garantir que a raquete alcança sempre a bola durante o serviço
+            zHeight = 1.5f + Mathf.Sin(Time.time * 3f) * 0.2f;
+            UpdateVisuals();
+            return;
+        }
+
         if (!hitNet && isPointActive)
         {
-            // Aplica a força de curva ao longo do tempo (só terá valor depois de bater na mesa)
             planeVelocity.y += currentCurve * Time.deltaTime;
             transform.Translate(planeVelocity * Time.deltaTime);
         }
@@ -78,11 +88,10 @@ public class BouncingBall2D : MonoBehaviour
 
                 if (zVelocity < 1.5f) zVelocity = 0f;
 
-                // NOVA LÓGICA: Ativa o efeito da curva apenas ao bater na mesa
                 if (pendingCurve != 0f)
                 {
-                    currentCurve = pendingCurve; // Inicia a curva no ar após o quique
-                    pendingCurve = 0f; // Limpa para não aplicar de novo
+                    currentCurve = pendingCurve;
+                    pendingCurve = 0f;
                 }
 
                 RegisterBounce();
@@ -95,26 +104,6 @@ public class BouncingBall2D : MonoBehaviour
 
         UpdateVisuals();
         previousXPosition = transform.position.x;
-    }
-
-    public void ApplyImpulse(Vector2 newDirection)
-    {
-        planeVelocity = newDirection;
-        zVelocity = jumpForce;
-        hitNet = false;
-        bouncesOnCurrentSide = 0;
-        currentCurve = 0f; // RESET À CURVA
-        pendingCurve = 0f; // RESET À CURVA PENDENTE
-    }
-
-    public void StartNewPoint(Vector2 initialDirection)
-    {
-        transform.position = new Vector3(0, 0, transform.position.z);
-        zHeight = 3f;
-        isPointActive = true;
-        bouncesOnCurrentSide = 0;
-        lastBounceSide = 0f;
-        ApplyImpulse(initialDirection);
     }
 
     private void RegisterBounce()
@@ -131,11 +120,9 @@ public class BouncingBall2D : MonoBehaviour
             bouncesOnCurrentSide++;
         }
 
-        // Bater mais de uma vez = Ponto perdido
         if (bouncesOnCurrentSide >= 2)
         {
             string winner = currentSide < 0 ? "Jogador da Direita" : "Jogador da Esquerda";
-            UnityEngine.Debug.Log($"Dois quiques na mesa! Ponto para o {winner}.");
             EndPoint(winner);
         }
     }
@@ -144,25 +131,13 @@ public class BouncingBall2D : MonoBehaviour
     {
         if (transform.position.x > rightOutBoundary)
         {
-            if (lastBounceSide == 1 && bouncesOnCurrentSide > 0)
-            {
-                EndPoint("Jogador da Esquerda");
-            }
-            else
-            {
-                EndPoint("Jogador da Direita");
-            }
+            if (lastBounceSide == 1 && bouncesOnCurrentSide > 0) EndPoint("Jogador da Esquerda");
+            else EndPoint("Jogador da Direita");
         }
         else if (transform.position.x < leftOutBoundary)
         {
-            if (lastBounceSide == -1 && bouncesOnCurrentSide > 0)
-            {
-                EndPoint("Jogador da Direita");
-            }
-            else
-            {
-                EndPoint("Jogador da Esquerda");
-            }
+            if (lastBounceSide == -1 && bouncesOnCurrentSide > 0) EndPoint("Jogador da Direita");
+            else EndPoint("Jogador da Esquerda");
         }
     }
 
@@ -188,13 +163,30 @@ public class BouncingBall2D : MonoBehaviour
             serveDirectionX = -1f;
         }
 
-        StartCoroutine(WaitAndReset(serveDirectionX));
+        StartCoroutine(WaitAndServe(serveDirectionX));
     }
 
-    private IEnumerator WaitAndReset(float serveDirectionX)
+    private IEnumerator WaitAndServe(float serveSideX)
     {
-        yield return new WaitForSeconds(2f);
-        StartNewPoint(new Vector2(serveDirectionX * 6f, 0f));
+        // Esconde a bola fora do ecrã durante o tempo de espera para evitar colisões acidentais
+        isServing = false;
+        isPointActive = false;
+        transform.position = new Vector3(0, 100f, 0);
+
+        yield return new WaitForSeconds(1.5f);
+
+        float spawnX = serveSideX > 0 ? 6f : -6f;
+        transform.position = new Vector3(spawnX, 0, transform.position.z);
+
+        planeVelocity = Vector2.zero;
+        zVelocity = 0f;
+        currentCurve = 0f;
+        pendingCurve = 0f;
+        bouncesOnCurrentSide = 0;
+        lastBounceSide = serveSideX;
+        hitNet = false;
+
+        isServing = true;
     }
 
     private void CheckBoundaries()
@@ -214,14 +206,11 @@ public class BouncingBall2D : MonoBehaviour
     private void CheckNetCollision()
     {
         if (hitNet) return;
-
         if (Mathf.Sign(previousXPosition) != Mathf.Sign(transform.position.x) && previousXPosition != 0)
         {
             bouncesOnCurrentSide = 0;
-
             if (zHeight < minNetHeight)
             {
-                UnityEngine.Debug.Log("Hit the net!");
                 hitNet = true;
                 planeVelocity = Vector2.zero;
                 transform.Translate(new Vector3(Mathf.Sign(previousXPosition) * 0.2f, 0, 0));
@@ -231,45 +220,41 @@ public class BouncingBall2D : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (!isPointActive) return;
+        bool wasServing = false;
+
+        if (isServing && collision.CompareTag("Paddle"))
+        {
+            isServing = false;
+            isPointActive = true;
+            wasServing = true;
+        }
+
+        if (!isPointActive && !wasServing) return;
 
         if (collision.CompareTag("Paddle"))
         {
-            if (zHeight > maxPaddleReach)
-            {
-                UnityEngine.Debug.Log("A bola passou por cima da raquete!");
-                return;
-            }
+            // Se for um serviço, ignoramos o limite de altura para garantir que funciona sempre!
+            if (zHeight > maxPaddleReach && !wasServing) return;
 
-            // Tenta ir buscar o Player, se não existir, tenta ir buscar a IA
             PlayerPaddle playerPaddle = collision.GetComponent<PlayerPaddle>();
             AIPaddle aiPaddle = collision.GetComponent<AIPaddle>();
 
             float forcaHorizontal = 10f, forcaVertical = jumpForce, forcaCurva = 0f;
-            bool isPlayerTwo = false;
+            bool isPaddleTwo = false;
 
             if (playerPaddle != null)
             {
                 playerPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva);
-                isPlayerTwo = playerPaddle.isPlayerTwo;
+                isPaddleTwo = playerPaddle.isPlayerTwo;
             }
             else if (aiPaddle != null)
             {
                 aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva);
-                isPlayerTwo = aiPaddle.isPlayerTwo;
-            }
-            else
-            {
-                // Fallback de segurança se esqueceres os scripts
-                forcaHorizontal = 10f;
-                forcaVertical = jumpForce;
-                forcaCurva = 0f;
+                isPaddleTwo = aiPaddle.isPlayerTwo;
             }
 
-            if (isPlayerTwo)
-                planeVelocity.x = -Mathf.Abs(forcaHorizontal);
-            else
-                planeVelocity.x = Mathf.Abs(forcaHorizontal);
+            if (isPaddleTwo) planeVelocity.x = -Mathf.Abs(forcaHorizontal);
+            else planeVelocity.x = Mathf.Abs(forcaHorizontal);
 
             zVelocity = forcaVertical;
             pendingCurve = forcaCurva;
@@ -295,21 +280,17 @@ public class BouncingBall2D : MonoBehaviour
     private void UpdateVisuals()
     {
         if (ballVisual == null || ballShadow == null) return;
-
         ballVisual.localPosition = new Vector3(0, zHeight, 0);
-
         float fakeScale = 1f + (zHeight * scaleMultiplier);
         ballVisual.localScale = new Vector3(fakeScale, fakeScale, 1f);
 
         float shadowOpacity = Mathf.Clamp01(1f - (zHeight * 0.15f));
         SpriteRenderer shadowSR = ballShadow.GetComponent<SpriteRenderer>();
-
         if (shadowSR != null)
         {
             Color color = shadowSR.color;
             color.a = shadowOpacity;
             shadowSR.color = color;
-
             float shadowScale = Mathf.Max(0.5f, 1f - (zHeight * 0.05f));
             ballShadow.localScale = new Vector3(shadowScale, shadowScale, 1f);
         }

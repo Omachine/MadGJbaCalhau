@@ -60,7 +60,7 @@ public class PlayerPaddle : MonoBehaviour
             }
         }
 
-        // Atualiza a direção vertical (necessário para o botão direito poder curvar para cima também)
+        // Atualiza a direção vertical (necessário para curvar para cima ou baixo)
         if (moveY != 0) lastMoveY = moveY;
 
         Vector3 movement = new Vector3(moveX, moveY, 0) * speed * Time.deltaTime;
@@ -90,7 +90,6 @@ public class PlayerPaddle : MonoBehaviour
                 isHoldingPower = Mouse.current.leftButton.isPressed;
                 wasReleasedPower = Mouse.current.leftButton.wasReleasedThisFrame;
 
-                // Botão direito mantido como pedido
                 isHoldingCurve = Mouse.current.rightButton.isPressed;
                 wasReleasedCurve = Mouse.current.rightButton.wasReleasedThisFrame;
             }
@@ -119,8 +118,8 @@ public class PlayerPaddle : MonoBehaviour
             chargeTimer += Time.deltaTime;
             chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
 
-            // EFEITO VISUAL: Esmaga no eixo Y se estiver a segurar o botão da curva OU se estiver a ir para baixo com o ataque normal
-            if (isHoldingCurve || (isHoldingPower && moveY < 0f))
+            // EFEITO VISUAL: Esmaga no eixo Y apenas se estiver a segurar o botão da curva
+            if (isHoldingCurve)
             {
                 float squashY = Mathf.Lerp(initialScale.y, initialScale.y * 0.5f, chargeTimer / 1.5f);
                 transform.localScale = new Vector3(initialScale.x, squashY, initialScale.z);
@@ -138,8 +137,9 @@ public class PlayerPaddle : MonoBehaviour
             savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
             savedIsHighShot = isHighShotPressed;
 
-            // A MAGIA DA CURVA: Ativa se soltarmos o botão de curva OU se soltarmos o botão normal enquanto nos movemos para baixo (independentemente do X)
-            savedIsCurveShot = wasReleasedCurve || (wasReleasedPower && moveY < 0f);
+            // NOVA LÓGICA SIMPLIFICADA DA CURVA:
+            // Ativa o efeito se soltaste o botão de curva E estavas a andar para cima ou para baixo nesse exato frame
+            savedIsCurveShot = wasReleasedCurve && (moveY != 0f);
 
             swingTimer = 0.2f;
             chargeTimer = 0f;
@@ -165,8 +165,8 @@ public class PlayerPaddle : MonoBehaviour
                 finalJumpForce = baseVerticalForce;
                 finalHorizontalForce = baseHorizontalForce;
 
-                // Se foi o botão direito, pode curvar na direção em que se move. Se foi o botão esquerdo para baixo, será negativo.
-                float curveDir = lastMoveY != 0 ? lastMoveY : -1f;
+                // Curva na direção (cima/baixo) em que o jogador estava a andar no momento em que largou
+                float curveDir = lastMoveY != 0 ? lastMoveY : 1f;
                 finalCurve = curveDir * baseCurveForce * savedMultiplier;
             }
             else

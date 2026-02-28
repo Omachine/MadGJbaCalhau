@@ -3,12 +3,10 @@ using UnityEngine;
 public class AIPaddle : MonoBehaviour
 {
     [Header("AI Identity")]
-    [Tooltip("Normalmente a IA é o Player Two (Direita)")]
     public bool isPlayerTwo = true;
 
     [Header("AI Difficulty")]
     [Range(1, 5)]
-    [Tooltip("1 = Iniciante, 2 = Amador, 3 = Profissional, 4 = Campeão, 5 = BOSS FINAL")]
     public int aiDifficulty = 1;
 
     [Header("Paddle Movement")]
@@ -24,7 +22,6 @@ public class AIPaddle : MonoBehaviour
     public float baseCurveForce = 25f;
     public float maxChargeMultiplier = 2.5f;
 
-    // Variáveis de estado
     private float chargeTimer = 0f;
     private float swingTimer = 0f;
     private float savedMultiplier = 1f;
@@ -32,10 +29,12 @@ public class AIPaddle : MonoBehaviour
     private bool savedIsCurveShot = false;
     private float lastMoveY = 0f;
 
-    // Variáveis Visuais e IA
     private Vector3 initialScale;
     private BouncingBall2D ballReference;
     private bool aiIsHolding = false;
+
+    // O cérebro da IA para evitar tremores:
+    private int plannedShot = 0; // 0 = Normal, 1 = Curve, 2 = HighShot
 
     void Start()
     {
@@ -45,43 +44,63 @@ public class AIPaddle : MonoBehaviour
 
     void Update()
     {
-        if (ballReference == null || !ballReference.isPointActive) return;
+        if (ballReference == null) return;
 
         float moveY = 0f;
         float moveX = 0f;
 
-        bool ballComingTowards = (isPlayerTwo && ballReference.planeVelocity.x > 0) || (!isPlayerTwo && ballReference.planeVelocity.x < 0);
+        bool isServingMode = ballReference.isServing;
+        bool ballOnMySide = (isPlayerTwo && ballReference.transform.position.x > 0) || (!isPlayerTwo && ballReference.transform.position.x < 0);
+        bool ballComingTowards = ballOnMySide && ((isPlayerTwo && ballReference.planeVelocity.x > 0) || (!isPlayerTwo && ballReference.planeVelocity.x < 0));
+
         float distX = Mathf.Abs(transform.position.x - ballReference.transform.position.x);
 
-        // --- LÓGICA DE MOVIMENTO (Agora com previsão de trajetória!) ---
-        float targetY = 0f;
+        float targetY = transform.position.y;
+        float targetX = transform.position.x;
 
-        if (ballComingTowards)
+        // --- LÓGICA DE ALVOS DE MOVIMENTO ---
+        if (isServingMode && ballOnMySide)
         {
-            // Calcula quanto tempo a bola vai demorar a chegar até à raquete
+            targetY = ballReference.transform.position.y;
+
+            // Se a IA está a fazer o movimento de bater (swingTimer ativo), atira-se CONTRA a bola!
+            if (swingTimer > 0f)
+            {
+                targetX = ballReference.transform.position.x + (isPlayerTwo ? -1.5f : 1.5f);
+            }
+            else
+            {
+                // Se ainda está a preparar, fica atrás da bola flutuante
+                targetX = ballReference.transform.position.x + (isPlayerTwo ? 1.5f : -1.5f);
+            }
+        }
+        else if (ballComingTowards && ballReference.isPointActive)
+        {
             float timeToReach = distX / Mathf.Max(Mathf.Abs(ballReference.planeVelocity.x), 1f);
+            targetY = ballReference.transform.position.y + (ballReference.planeVelocity.y * timeToReach);
 
-            // Prevê onde a bola vai estar nesse tempo
-            float predictedY = ballReference.transform.position.y + (ballReference.planeVelocity.y * timeToReach);
-
-            // Mantém a previsão dentro dos limites da mesa
-            targetY = Mathf.Clamp(predictedY, bottomLimit, topLimit);
+            float defaultX = isPlayerTwo ? rightLimit : leftLimit;
+            targetX = defaultX + (isPlayerTwo ? -(aiDifficulty * 0.5f) : (aiDifficulty * 0.5f));
         }
-
-        // Margem de erro e velocidade escalam melhor com a dificuldade
-        float errorMargin = (5 - aiDifficulty) * 0.5f;
-        float currentSpeed = baseSpeed + (aiDifficulty * 2.5f); // Ficam bem mais rápidas nas dificuldades altas!
-
-        if (transform.position.y < targetY - errorMargin) moveY = 1f;
-        else if (transform.position.y > targetY + errorMargin) moveY = -1f;
-
-        // O Boss (Nível 5) move-se também no eixo X para antecipar
-        if (aiDifficulty == 5 && ballComingTowards)
+        else
         {
-            float targetX = isPlayerTwo ? rightLimit - 1f : leftLimit + 1f;
-            if (transform.position.x < targetX) moveX = 1f;
-            else if (transform.position.x > targetX) moveX = -1f;
+            targetY = 0f;
+            targetX = isPlayerTwo ? (rightLimit + leftLimit) / 2f + 2f : (rightLimit + leftLimit) / 2f - 2f;
         }
+
+        targetY = Mathf.Clamp(targetY, bottomLimit, topLimit);
+        targetX = Mathf.Clamp(targetX, leftLimit, rightLimit);
+
+        // --- MOVIMENTO FLUIDO ---
+        float currentSpeed = baseSpeed + (aiDifficulty * 2.5f);
+        float errorMargin = 0.2f;
+
+        float diffY = targetY - transform.position.y;
+        if (Mathf.Abs(diffY) > errorMargin) moveY = Mathf.Sign(diffY);
+
+        float diffX = targetX - transform.position.x;
+        // Durante o serviço OU em níveis difíceis, a IA avança no eixo X
+        if (Mathf.Abs(diffX) > errorMargin && (aiDifficulty >= 2 || isServingMode)) moveX = Mathf.Sign(diffX);
 
         if (moveY != 0) lastMoveY = moveY;
 
@@ -95,44 +114,54 @@ public class AIPaddle : MonoBehaviour
 
         // --- LÓGICA DE ATAQUE DA IA ---
         float chargeDist = 4f + aiDifficulty;
-        // Quanto mais difícil, mais perto a bola tem de estar para a IA largar o botão (timing perfeito)
-        float hitDist = 1.8f - (aiDifficulty * 0.2f);
+        float hitDist = 1.5f;
 
         bool wantsToHold = false;
         bool wantsToRelease = false;
 
-        if (ballComingTowards)
+        if (isServingMode && ballOnMySide)
         {
-            if (distX <= chargeDist && aiDifficulty >= 2)
+            // Espera chegar à posição atrás da bola para começar a carregar
+            if (distX < 2.5f && Mathf.Abs(diffY) < 1f)
             {
                 wantsToHold = true;
-            }
-
-            // A IA verifica se a bola está perto o suficiente E se não está alta demais
-            if (distX <= hitDist)
-            {
-                if (ballReference.zHeight <= 2.5f) // maxPaddleReach
+                if (chargeTimer > 0.6f)
                 {
-                    wantsToHold = false; // Larga o botão!
-                    if (aiIsHolding) wantsToRelease = true;
-                }
-                else
-                {
-                    // Se a bola está demasiado alta, a IA é inteligente e continua a segurar à espera que caia
-                    wantsToHold = true;
+                    wantsToHold = false;
+                    wantsToRelease = true;
                 }
             }
         }
+        else if (ballComingTowards && ballReference.isPointActive)
+        {
+            if (distX <= chargeDist && aiDifficulty >= 2) wantsToHold = true;
 
-        // Executar as ações simuladas
-        if (wantsToHold)
+            if (distX <= hitDist)
+            {
+                if (ballReference.zHeight <= 2.5f)
+                {
+                    wantsToHold = false;
+                    if (aiIsHolding) wantsToRelease = true;
+                }
+                else wantsToHold = true;
+            }
+        }
+
+        // --- EXECUTAR O ATAQUE ---
+        if (wantsToHold && !aiIsHolding)
         {
             aiIsHolding = true;
+            plannedShot = 0;
+            if (aiDifficulty >= 4 && Random.value > 0.6f) plannedShot = 1;
+            else if (aiDifficulty >= 3 && Random.value > 0.8f) plannedShot = 2;
+        }
+
+        if (aiIsHolding)
+        {
             chargeTimer += Time.deltaTime;
             chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
 
-            bool curveRandom = (aiDifficulty >= 4 && Random.value > 0.5f);
-            if (curveRandom)
+            if (plannedShot == 1)
             {
                 float squashY = Mathf.Lerp(initialScale.y, initialScale.y * 0.5f, chargeTimer / 1.5f);
                 transform.localScale = new Vector3(initialScale.x, squashY, initialScale.z);
@@ -143,23 +172,22 @@ public class AIPaddle : MonoBehaviour
                 transform.localScale = new Vector3(squashX, initialScale.y, initialScale.z);
             }
         }
-        else if (aiIsHolding && wantsToRelease)
+        else if (!aiIsHolding)
         {
-            savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
-
-            // Seleção de tiro mais inteligente
-            savedIsHighShot = (aiDifficulty >= 3 && Random.value > 0.85f && ballReference.zHeight < 1.0f);
-            savedIsCurveShot = (aiDifficulty >= 4 && Random.value > 0.5f);
-
-            swingTimer = 0.2f;
             chargeTimer = 0f;
-            aiIsHolding = false;
             transform.localScale = initialScale;
         }
-        else if (!ballComingTowards)
+
+        if (wantsToRelease)
         {
-            aiIsHolding = false;
+            savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
+            savedIsHighShot = (plannedShot == 2);
+            savedIsCurveShot = (plannedShot == 1);
+
+            // Tempo suficiente para a IA conseguir "dar o salto" até bater na bola
+            swingTimer = 0.4f;
             chargeTimer = 0f;
+            aiIsHolding = false;
             transform.localScale = initialScale;
         }
     }
