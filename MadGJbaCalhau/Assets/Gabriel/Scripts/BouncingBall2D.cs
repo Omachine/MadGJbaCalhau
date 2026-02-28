@@ -1,4 +1,7 @@
 using UnityEngine;
+using UnityEngine.UI; 
+using System.Collections; 
+using TMPro; 
 
 public class BouncingBall2D : MonoBehaviour
 {
@@ -18,6 +21,25 @@ public class BouncingBall2D : MonoBehaviour
     [Header("Net Settings")]
     public float minNetHeight = 1.5f;
 
+    [Header("Arena Boundaries")]
+    public float topBoundary = 4.5f;
+    public float bottomBoundary = -4.5f;
+
+    [Header("Screen Boundaries (Out of Bounds)")]
+    public float leftOutBoundary = -10f;
+    public float rightOutBoundary = 10f;
+
+    [Header("Score UI")]
+    public TextMeshProUGUI player1ScoreText;
+    public TextMeshProUGUI player2ScoreText; 
+    private int player1Score = 0;
+    private int player2Score = 0;
+
+    [Header("Game Logic")]
+    public bool isPointActive = true;
+    private int bouncesOnCurrentSide = 0;
+    private float lastBounceSide = 0f;
+
     private float previousXPosition;
     private bool hitNet = false;
     private float scaleMultiplier = 0.15f;
@@ -25,30 +47,41 @@ public class BouncingBall2D : MonoBehaviour
     void Start()
     {
         previousXPosition = transform.position.x;
+        // Inicia com os textos a 0
+        if (player1ScoreText != null) player1ScoreText.text = "0";
+        if (player2ScoreText != null) player2ScoreText.text = "0";
+
         ApplyImpulse(new Vector2(6f, 0f));
     }
 
     void Update()
     {
-        if (!hitNet)
+        if (!hitNet && isPointActive)
         {
             transform.Translate(planeVelocity * Time.deltaTime);
         }
 
-        zVelocity -= gravity * Time.deltaTime;
-        zHeight += zVelocity * Time.deltaTime;
-
-        if (zHeight <= 0f)
+        if (isPointActive)
         {
-            zHeight = 0f;
-            zVelocity = Mathf.Abs(zVelocity) * 0.75f;
+            zVelocity -= gravity * Time.deltaTime;
+            zHeight += zVelocity * Time.deltaTime;
 
-            if (zVelocity < 1.5f) zVelocity = 0f;
+            if (zHeight <= 0f)
+            {
+                zHeight = 0f;
+                zVelocity = Mathf.Abs(zVelocity) * 0.75f;
+
+                if (zVelocity < 1.5f) zVelocity = 0f;
+
+                RegisterBounce();
+            }
+
+            CheckBoundaries();
+            CheckOutOdBounds();
+            CheckNetCollision();
         }
 
-        CheckNetCollision();
         UpdateVisuals();
-
         previousXPosition = transform.position.x;
     }
 
@@ -57,6 +90,111 @@ public class BouncingBall2D : MonoBehaviour
         planeVelocity = newDirection;
         zVelocity = jumpForce;
         hitNet = false;
+        bouncesOnCurrentSide = 0;
+    }
+
+    public void StartNewPoint(Vector2 initialDirection)
+    {
+        transform.position = new Vector3(0, 0, transform.position.z);
+        zHeight = 3f;
+        isPointActive = true;
+        bouncesOnCurrentSide = 0;
+        lastBounceSide = 0f;
+        ApplyImpulse(initialDirection);
+    }
+
+    private void RegisterBounce()
+    {
+        float currentSide = Mathf.Sign(transform.position.x);
+
+        if (lastBounceSide != currentSide || bouncesOnCurrentSide == 0)
+        {
+            lastBounceSide = currentSide;
+            bouncesOnCurrentSide = 1;
+        }
+        else
+        {
+            bouncesOnCurrentSide++;
+        }
+
+        if (bouncesOnCurrentSide >= 2)
+        {
+            string winner = currentSide < 0 ? "Jogador da Direita" : "Jogador da Esquerda";
+            UnityEngine.Debug.Log($"Dois quiques na mesa! Ponto para o {winner}.");
+            EndPoint(winner);
+        }
+    }
+
+    private void CheckOutOdBounds()
+    {
+        if (transform.position.x > rightOutBoundary)
+        {
+            if (lastBounceSide == 1 && bouncesOnCurrentSide > 0)
+            {
+                EndPoint("Jogador da Esquerda");
+            }
+            else
+            {
+                EndPoint("Jogador da Direita");
+            }
+        }
+        else if (transform.position.x < leftOutBoundary)
+        {
+            if (lastBounceSide == -1 && bouncesOnCurrentSide > 0)
+            {
+                EndPoint("Jogador da Direita");
+            }
+            else
+            {
+                EndPoint("Jogador da Esquerda");
+            }
+        }
+    }
+
+    private void EndPoint(string winner)
+    {
+        isPointActive = false;
+        planeVelocity = Vector2.zero;
+        zVelocity = 0f;
+        UnityEngine.Debug.Log($"PONTO para o {winner}!");
+
+        float serveDirectionX = 1f;
+
+        if (winner == "Jogador da Esquerda")
+        {
+            player1Score++;
+            if (player1ScoreText != null) player1ScoreText.text = player1Score.ToString();
+            serveDirectionX = 1f; 
+        }
+        else
+        {
+            player2Score++;
+            if (player2ScoreText != null) player2ScoreText.text = player2Score.ToString();
+            serveDirectionX = -1f;
+        }
+
+        StartCoroutine(WaitAndReset(serveDirectionX));
+    }
+
+    private IEnumerator WaitAndReset(float serveDirectionX)
+    {
+        yield return new WaitForSeconds(2f);
+
+        StartNewPoint(new Vector2(serveDirectionX * 6f, 0f));
+    }
+
+    private void CheckBoundaries()
+    {
+        if (transform.position.y >= topBoundary)
+        {
+            transform.position = new Vector3(transform.position.x, topBoundary, transform.position.z);
+            planeVelocity.y = -Mathf.Abs(planeVelocity.y);
+        }
+        else if (transform.position.y <= bottomBoundary)
+        {
+            transform.position = new Vector3(transform.position.x, bottomBoundary, transform.position.z);
+            planeVelocity.y = Mathf.Abs(planeVelocity.y);
+        }
     }
 
     private void CheckNetCollision()
@@ -65,6 +203,8 @@ public class BouncingBall2D : MonoBehaviour
 
         if (Mathf.Sign(previousXPosition) != Mathf.Sign(transform.position.x) && previousXPosition != 0)
         {
+            bouncesOnCurrentSide = 0;
+
             if (zHeight < minNetHeight)
             {
                 UnityEngine.Debug.Log("Hit the net!");
@@ -75,24 +215,44 @@ public class BouncingBall2D : MonoBehaviour
         }
     }
 
-    // A MÁGICA DA COLISÃO ACONTECE AQUI
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Bateu na Raquete (Esquerda)
+        if (!isPointActive) return;
+
         if (collision.CompareTag("Paddle"))
         {
-            planeVelocity.x = Mathf.Abs(planeVelocity.x); // Força a ir para a direita
+            PaddleController paddle = collision.GetComponent<PaddleController>();
+
+            if (paddle != null)
+            {
+                float forcaHorizontal, forcaVertical;
+                paddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical);
+
+                if (paddle.isPlayerTwo)
+                    planeVelocity.x = -Mathf.Abs(forcaHorizontal);
+                else
+                    planeVelocity.x = Mathf.Abs(forcaHorizontal); 
+
+                zVelocity = forcaVertical;
+            }
+            else
+            {
+                planeVelocity.x = 10f;
+                zVelocity = jumpForce;
+            }
+
             float hitOffset = transform.position.y - collision.transform.position.y;
-            planeVelocity.y = hitOffset * 4f; // Efeito da raquete
-            zVelocity = jumpForce; // Salta a rede novamente
+            planeVelocity.y = hitOffset * 4f;
+
             hitNet = false;
+            bouncesOnCurrentSide = 0;
         }
-        // Bateu na Parede (Direita)
         else if (collision.CompareTag("Wall"))
         {
-            planeVelocity.x = -Mathf.Abs(planeVelocity.x); // Força a ir para a esquerda
-            zVelocity = jumpForce; // Salta a rede novamente
+            planeVelocity.x = -10f;
+            zVelocity = jumpForce;
             hitNet = false;
+            bouncesOnCurrentSide = 0;
         }
     }
 
