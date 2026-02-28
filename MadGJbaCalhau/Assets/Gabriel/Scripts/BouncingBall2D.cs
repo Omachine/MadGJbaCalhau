@@ -75,6 +75,27 @@ public class BouncingBall2D : MonoBehaviour
         }
     }
 
+    // A MÁGICA DA COLISÃO ACONTECE AQUI
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        // Bateu na Raquete (Esquerda)
+        if (collision.CompareTag("Paddle"))
+        {
+            planeVelocity.x = Mathf.Abs(planeVelocity.x); // Força a ir para a direita
+            float hitOffset = transform.position.y - collision.transform.position.y;
+            planeVelocity.y = hitOffset * 4f; // Efeito da raquete
+            zVelocity = jumpForce; // Salta a rede novamente
+            hitNet = false;
+        }
+        // Bateu na Parede (Direita)
+        else if (collision.CompareTag("Wall"))
+        {
+            planeVelocity.x = -Mathf.Abs(planeVelocity.x); // Força a ir para a esquerda
+            zVelocity = jumpForce; // Salta a rede novamente
+            hitNet = false;
+        }
+    }
+
     private void UpdateVisuals()
     {
         if (ballVisual == null || ballShadow == null) return;
