@@ -22,10 +22,14 @@ public class BouncingBall2D : MonoBehaviour
     public float topBoundary = 4.5f;
     public float bottomBoundary = -4.5f;
 
+    [Header("Screen Boundaries (Out of Bounds)")]
+    public float leftOutBoundary = -10f;
+    public float rightOutBoundary = 10f;
+
     [Header("Game Logic")]
     public bool isPointActive = true;
     private int bouncesOnCurrentSide = 0;
-    private float lastBounceSide = 0f; // -1 para esquerda, 1 para direita
+    private float lastBounceSide = 0f;
 
     private float previousXPosition;
     private bool hitNet = false;
@@ -39,32 +43,32 @@ public class BouncingBall2D : MonoBehaviour
 
     void Update()
     {
-        if (!hitNet)
+        if (!hitNet && isPointActive)
         {
             transform.Translate(planeVelocity * Time.deltaTime);
         }
 
-        zVelocity -= gravity * Time.deltaTime;
-        zHeight += zVelocity * Time.deltaTime;
-
-        if (zHeight <= 0f)
+        if (isPointActive)
         {
-            zHeight = 0f;
-            zVelocity = Mathf.Abs(zVelocity) * 0.75f;
+            zVelocity -= gravity * Time.deltaTime;
+            zHeight += zVelocity * Time.deltaTime;
 
-            if (zVelocity < 1.5f) zVelocity = 0f;
-
-            // Regista o quique no chão apenas se o ponto ainda estiver a decorrer
-            if (isPointActive)
+            if (zHeight <= 0f)
             {
+                zHeight = 0f;
+                zVelocity = Mathf.Abs(zVelocity) * 0.75f;
+
+                if (zVelocity < 1.5f) zVelocity = 0f;
+
                 RegisterBounce();
             }
+
+            CheckBoundaries();
+            CheckOutOdBounds();
+            CheckNetCollision();
         }
 
-        CheckBoundaries();
-        CheckNetCollision();
         UpdateVisuals();
-
         previousXPosition = transform.position.x;
     }
 
@@ -73,13 +77,12 @@ public class BouncingBall2D : MonoBehaviour
         planeVelocity = newDirection;
         zVelocity = jumpForce;
         hitNet = false;
-        bouncesOnCurrentSide = 0; // Reset aos quiques quando há impulso
+        bouncesOnCurrentSide = 0;
     }
 
-    // Método que podes chamar através de um botão ou Game Manager para recomeçar
     public void StartNewPoint(Vector2 initialDirection)
     {
-        transform.position = new Vector3(0, 0, transform.position.z); // Volta ao centro
+        transform.position = new Vector3(0, 0, transform.position.z);
         zHeight = 3f;
         isPointActive = true;
         bouncesOnCurrentSide = 0;
@@ -89,7 +92,6 @@ public class BouncingBall2D : MonoBehaviour
 
     private void RegisterBounce()
     {
-        // Descobre em que lado a bola bateu (esquerda ou direita)
         float currentSide = Mathf.Sign(transform.position.x);
 
         if (lastBounceSide != currentSide || bouncesOnCurrentSide == 0)
@@ -102,29 +104,61 @@ public class BouncingBall2D : MonoBehaviour
             bouncesOnCurrentSide++;
         }
 
-        // Regra do Ping Pong: Bater mais de uma vez = Ponto perdido!
+        // Bater mais de uma vez = Ponto perdido
         if (bouncesOnCurrentSide >= 2)
         {
-            isPointActive = false; // Bloqueia a contagem extra
-
-            string loser = currentSide < 0 ? "Jogador da Esquerda" : "Jogador da Direita";
-            UnityEngine.Debug.Log($"PONTO! O {loser} deixou a bola quicar {bouncesOnCurrentSide} vezes.");
-
-            // Para a bola completamente para não continuar a saltitar pela mesa
-            planeVelocity = Vector2.zero;
-            zVelocity = 0f;
+            string winner = currentSide < 0 ? "Jogador da Direita" : "Jogador da Esquerda";
+            UnityEngine.Debug.Log($"Dois quiques na mesa! Ponto para o {winner}.");
+            EndPoint(winner);
         }
+    }
+
+    // NOVA LÓGICA DE BOLA FORA DO ECRÃ
+    private void CheckOutOdBounds()
+    {
+        if (transform.position.x > rightOutBoundary)
+        {
+            // Se foi pela direita:
+            // Já quicou na mesa da direita? Se sim, a direita falhou a receção -> Esquerda Ganha
+            // Se não, a esquerda atirou a bola diretamente para fora -> Direita Ganha
+            if (lastBounceSide == 1 && bouncesOnCurrentSide > 0)
+            {
+                EndPoint("Jogador da Esquerda");
+            }
+            else
+            {
+                EndPoint("Jogador da Direita");
+            }
+        }
+        else if (transform.position.x < leftOutBoundary)
+        {
+            // O mesmo para o lado esquerdo
+            if (lastBounceSide == -1 && bouncesOnCurrentSide > 0)
+            {
+                EndPoint("Jogador da Direita");
+            }
+            else
+            {
+                EndPoint("Jogador da Esquerda");
+            }
+        }
+    }
+
+    private void EndPoint(string winner)
+    {
+        isPointActive = false;
+        planeVelocity = Vector2.zero;
+        zVelocity = 0f;
+        UnityEngine.Debug.Log($"PONTO para o {winner}!");
     }
 
     private void CheckBoundaries()
     {
-        // Verifica se bateu na parede invisível de cima
         if (transform.position.y >= topBoundary)
         {
             transform.position = new Vector3(transform.position.x, topBoundary, transform.position.z);
             planeVelocity.y = -Mathf.Abs(planeVelocity.y);
         }
-        // Verifica se bateu na parede invisível de baixo
         else if (transform.position.y <= bottomBoundary)
         {
             transform.position = new Vector3(transform.position.x, bottomBoundary, transform.position.z);
@@ -138,7 +172,6 @@ public class BouncingBall2D : MonoBehaviour
 
         if (Mathf.Sign(previousXPosition) != Mathf.Sign(transform.position.x) && previousXPosition != 0)
         {
-            // Reset aos quiques quando a bola cruza a rede com sucesso
             bouncesOnCurrentSide = 0;
 
             if (zHeight < minNetHeight)
@@ -155,10 +188,8 @@ public class BouncingBall2D : MonoBehaviour
     {
         if (!isPointActive) return;
 
-        // Bateu na Raquete (Esquerda)
         if (collision.CompareTag("Paddle"))
         {
-            // Verifica se a raquete tem o controlador de ataque
             PaddleController paddle = collision.GetComponent<PaddleController>();
 
             if (paddle != null)
@@ -166,27 +197,24 @@ public class BouncingBall2D : MonoBehaviour
                 float forcaHorizontal, forcaVertical;
                 paddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical);
 
-                planeVelocity.x = forcaHorizontal; // Força X calculada pela raquete
-                zVelocity = forcaVertical;         // Força Z calculada pela raquete
+                planeVelocity.x = Mathf.Abs(forcaHorizontal); // Força sempre a bola a ir para a frente (direita) se for a raquete esquerda
+                zVelocity = forcaVertical;
             }
             else
             {
-                // Fallback normal
                 planeVelocity.x = 10f;
                 zVelocity = jumpForce;
             }
 
-            // Efeito da raquete (Y)
             float hitOffset = transform.position.y - collision.transform.position.y;
             planeVelocity.y = hitOffset * 4f;
 
             hitNet = false;
-            bouncesOnCurrentSide = 0; // Reset ao ser devolvida
+            bouncesOnCurrentSide = 0;
         }
-        // Bateu na Parede (Direita)
         else if (collision.CompareTag("Wall"))
         {
-            planeVelocity.x = -10f; // Força de devolução da parede
+            planeVelocity.x = -10f;
             zVelocity = jumpForce;
             hitNet = false;
             bouncesOnCurrentSide = 0;

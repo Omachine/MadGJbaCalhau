@@ -12,9 +12,23 @@ public class PaddleController : MonoBehaviour
 
     [Header("Attack Mechanics")]
     public float baseHorizontalForce = 12f;
-    public float baseVerticalForce = 8f;       // Salto normal (Z)
-    public float maxChargeMultiplier = 2.5f;   // Quanto a força é multiplicada no máximo
+    public float baseVerticalForce = 8f;
+    public float maxChargeMultiplier = 2.5f;
+
+    // Variáveis de estado
     private float chargeTimer = 0f;
+    private float swingTimer = 0f; // Janela de tempo do "parry" (timing perfeito)
+    private float savedMultiplier = 1f;
+    private bool savedIsHighShot = false;
+
+    // Variável visual
+    private Vector3 initialScale;
+
+    void Start()
+    {
+        // Guardamos o tamanho original para a animação
+        initialScale = transform.localScale;
+    }
 
     void Update()
     {
@@ -43,43 +57,73 @@ public class PaddleController : MonoBehaviour
 
         transform.position = newPos;
 
-        // --- LÓGICA DE CARREGAR O ATAQUE ---
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        // --- LÓGICA DE TIMING E EFEITO VISUAL ---
+        if (swingTimer > 0)
         {
-            chargeTimer += Time.deltaTime;
-            // Limita o charge máximo a 1.5 segundos
-            chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
+            swingTimer -= Time.deltaTime;
         }
-        else
+
+        if (Mouse.current != null)
         {
-            // Se largar o botão, perde a força acumulada
-            chargeTimer = 0f;
+            bool isHolding = Mouse.current.leftButton.isPressed;
+            bool wasReleased = Mouse.current.leftButton.wasReleasedThisFrame;
+
+            if (isHolding && !wasReleased)
+            {
+                chargeTimer += Time.deltaTime;
+                chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
+
+                // EFEITO VISUAL: Encolhe o Scale no X consoante o tempo que seguras
+                // Lerp vai do Scale original (100%) até metade (50%)
+                float squashX = Mathf.Lerp(initialScale.x, initialScale.x * 0.5f, chargeTimer / 1.5f);
+                transform.localScale = new Vector3(squashX, initialScale.y, initialScale.z);
+            }
+
+            if (wasReleased)
+            {
+                // DISPARO! Larga a força guardada.
+                savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
+
+                // MUDANÇA: Verifica o botão "E"
+                savedIsHighShot = Keyboard.current != null && Keyboard.current.eKey.isPressed;
+
+                // Abre a janela de timing de 0.2s para a bola bater em nós
+                swingTimer = 0.2f;
+                chargeTimer = 0f;
+
+                // Reseta o visual para o tamanho normal de forma instantânea ("Snap"!)
+                transform.localScale = initialScale;
+            }
         }
     }
 
     // Método chamado pela Bola quando colide connosco
     public void CalculateHitParameters(out float finalHorizontalForce, out float finalJumpForce)
     {
-        // O multiplicador vai de 1.0 (sem charge) até maxChargeMultiplier (charge no máximo)
-        float multiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
-
-        // Verifica se a tecla "1" está pressionada para o tiro alto
-        bool isHighShot = Keyboard.current != null && Keyboard.current.digit1Key.isPressed;
-
-        if (isHighShot)
+        // Só aplicamos a super força se a bola nos atingir dentro do timing do "swing"
+        if (swingTimer > 0f)
         {
-            // Tiro Alto: Muita força vertical (Z), mas a velocidade horizontal é a normal
-            finalJumpForce = baseVerticalForce * multiplier;
-            finalHorizontalForce = baseHorizontalForce;
+            if (savedIsHighShot)
+            {
+                // Tiro Alto
+                finalJumpForce = baseVerticalForce * savedMultiplier;
+                finalHorizontalForce = baseHorizontalForce;
+            }
+            else
+            {
+                // Tiro Poderoso Frontal
+                finalJumpForce = baseVerticalForce;
+                finalHorizontalForce = baseHorizontalForce * savedMultiplier;
+            }
+
+            // Consome o swing para não aplicar duas vezes
+            swingTimer = 0f;
         }
         else
         {
-            // Tiro Poderoso Frontal: Força vertical normal, mas muita velocidade horizontal
+            // O jogador falhou o timing (ou estava só a segurar o botão). Rebate com a força base.
             finalJumpForce = baseVerticalForce;
-            finalHorizontalForce = baseHorizontalForce * multiplier;
+            finalHorizontalForce = baseHorizontalForce;
         }
-
-        // Dá reset ao charge depois de bater na bola
-        chargeTimer = 0f;
     }
 }
