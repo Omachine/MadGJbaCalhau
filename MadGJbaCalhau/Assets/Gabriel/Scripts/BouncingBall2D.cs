@@ -1,4 +1,7 @@
 using UnityEngine;
+using UnityEngine.UI; 
+using System.Collections; 
+using TMPro; 
 
 public class BouncingBall2D : MonoBehaviour
 {
@@ -26,6 +29,12 @@ public class BouncingBall2D : MonoBehaviour
     public float leftOutBoundary = -10f;
     public float rightOutBoundary = 10f;
 
+    [Header("Score UI")]
+    public TextMeshProUGUI player1ScoreText;
+    public TextMeshProUGUI player2ScoreText; 
+    private int player1Score = 0;
+    private int player2Score = 0;
+
     [Header("Game Logic")]
     public bool isPointActive = true;
     private int bouncesOnCurrentSide = 0;
@@ -38,6 +47,10 @@ public class BouncingBall2D : MonoBehaviour
     void Start()
     {
         previousXPosition = transform.position.x;
+        // Inicia com os textos a 0
+        if (player1ScoreText != null) player1ScoreText.text = "0";
+        if (player2ScoreText != null) player2ScoreText.text = "0";
+
         ApplyImpulse(new Vector2(6f, 0f));
     }
 
@@ -104,7 +117,6 @@ public class BouncingBall2D : MonoBehaviour
             bouncesOnCurrentSide++;
         }
 
-        // Bater mais de uma vez = Ponto perdido
         if (bouncesOnCurrentSide >= 2)
         {
             string winner = currentSide < 0 ? "Jogador da Direita" : "Jogador da Esquerda";
@@ -113,14 +125,10 @@ public class BouncingBall2D : MonoBehaviour
         }
     }
 
-    // NOVA LÓGICA DE BOLA FORA DO ECRÃ
     private void CheckOutOdBounds()
     {
         if (transform.position.x > rightOutBoundary)
         {
-            // Se foi pela direita:
-            // Já quicou na mesa da direita? Se sim, a direita falhou a receção -> Esquerda Ganha
-            // Se não, a esquerda atirou a bola diretamente para fora -> Direita Ganha
             if (lastBounceSide == 1 && bouncesOnCurrentSide > 0)
             {
                 EndPoint("Jogador da Esquerda");
@@ -132,7 +140,6 @@ public class BouncingBall2D : MonoBehaviour
         }
         else if (transform.position.x < leftOutBoundary)
         {
-            // O mesmo para o lado esquerdo
             if (lastBounceSide == -1 && bouncesOnCurrentSide > 0)
             {
                 EndPoint("Jogador da Direita");
@@ -150,6 +157,30 @@ public class BouncingBall2D : MonoBehaviour
         planeVelocity = Vector2.zero;
         zVelocity = 0f;
         UnityEngine.Debug.Log($"PONTO para o {winner}!");
+
+        float serveDirectionX = 1f;
+
+        if (winner == "Jogador da Esquerda")
+        {
+            player1Score++;
+            if (player1ScoreText != null) player1ScoreText.text = player1Score.ToString();
+            serveDirectionX = 1f; 
+        }
+        else
+        {
+            player2Score++;
+            if (player2ScoreText != null) player2ScoreText.text = player2Score.ToString();
+            serveDirectionX = -1f;
+        }
+
+        StartCoroutine(WaitAndReset(serveDirectionX));
+    }
+
+    private IEnumerator WaitAndReset(float serveDirectionX)
+    {
+        yield return new WaitForSeconds(2f);
+
+        StartNewPoint(new Vector2(serveDirectionX * 6f, 0f));
     }
 
     private void CheckBoundaries()
@@ -197,7 +228,11 @@ public class BouncingBall2D : MonoBehaviour
                 float forcaHorizontal, forcaVertical;
                 paddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical);
 
-                planeVelocity.x = Mathf.Abs(forcaHorizontal); // Força sempre a bola a ir para a frente (direita) se for a raquete esquerda
+                if (paddle.isPlayerTwo)
+                    planeVelocity.x = -Mathf.Abs(forcaHorizontal);
+                else
+                    planeVelocity.x = Mathf.Abs(forcaHorizontal); 
+
                 zVelocity = forcaVertical;
             }
             else

@@ -3,6 +3,10 @@ using UnityEngine.InputSystem;
 
 public class PaddleController : MonoBehaviour
 {
+    [Header("Player Settings")]
+    [Tooltip("Ativa isto para a raquete da direita (Jogador 2)")]
+    public bool isPlayerTwo = false;
+
     [Header("Paddle Movement")]
     public float speed = 12f;
     public float topLimit = 4f;
@@ -38,15 +42,24 @@ public class PaddleController : MonoBehaviour
 
         if (Keyboard.current != null)
         {
-            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)
-                moveY = 1f;
-            else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed)
-                moveY = -1f;
+            if (!isPlayerTwo)
+            {
+                // Controlos do Jogador 1 (Esquerda)
+                if (Keyboard.current.wKey.isPressed) moveY = 1f;
+                else if (Keyboard.current.sKey.isPressed) moveY = -1f;
 
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-                moveX = -1f;
-            else if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-                moveX = 1f;
+                if (Keyboard.current.aKey.isPressed) moveX = -1f;
+                else if (Keyboard.current.dKey.isPressed) moveX = 1f;
+            }
+            else
+            {
+                // Controlos do Jogador 2 (Direita)
+                if (Keyboard.current.upArrowKey.isPressed) moveY = 1f;
+                else if (Keyboard.current.downArrowKey.isPressed) moveY = -1f;
+
+                if (Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
+                else if (Keyboard.current.rightArrowKey.isPressed) moveX = 1f;
+            }
         }
 
         Vector3 movement = new Vector3(moveX, moveY, 0) * speed * Time.deltaTime;
@@ -63,37 +76,56 @@ public class PaddleController : MonoBehaviour
             swingTimer -= Time.deltaTime;
         }
 
-        if (Mouse.current != null)
+        bool isHolding = false;
+        bool wasReleased = false;
+        bool isHighShotPressed = false;
+
+        if (!isPlayerTwo)
         {
-            bool isHolding = Mouse.current.leftButton.isPressed;
-            bool wasReleased = Mouse.current.leftButton.wasReleasedThisFrame;
-
-            if (isHolding && !wasReleased)
+            // Jogador 1 ataca com o Rato e o "E"
+            if (Mouse.current != null)
             {
-                chargeTimer += Time.deltaTime;
-                chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
-
-                // EFEITO VISUAL: Encolhe o Scale no X consoante o tempo que seguras
-                // Lerp vai do Scale original (100%) até metade (50%)
-                float squashX = Mathf.Lerp(initialScale.x, initialScale.x * 0.5f, chargeTimer / 1.5f);
-                transform.localScale = new Vector3(squashX, initialScale.y, initialScale.z);
+                isHolding = Mouse.current.leftButton.isPressed;
+                wasReleased = Mouse.current.leftButton.wasReleasedThisFrame;
             }
-
-            if (wasReleased)
+            if (Keyboard.current != null)
             {
-                // DISPARO! Larga a força guardada.
-                savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
-
-                // MUDANÇA: Verifica o botão "E"
-                savedIsHighShot = Keyboard.current != null && Keyboard.current.eKey.isPressed;
-
-                // Abre a janela de timing de 0.2s para a bola bater em nós
-                swingTimer = 0.2f;
-                chargeTimer = 0f;
-
-                // Reseta o visual para o tamanho normal de forma instantânea ("Snap"!)
-                transform.localScale = initialScale;
+                isHighShotPressed = Keyboard.current.eKey.isPressed;
             }
+        }
+        else
+        {
+            // Jogador 2 ataca com o Numpad 0 e Numpad 1
+            if (Keyboard.current != null)
+            {
+                isHolding = Keyboard.current.numpad0Key.isPressed;
+                wasReleased = Keyboard.current.numpad0Key.wasReleasedThisFrame;
+                isHighShotPressed = Keyboard.current.numpad1Key.isPressed;
+            }
+        }
+
+        if (isHolding && !wasReleased)
+        {
+            chargeTimer += Time.deltaTime;
+            chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
+
+            // EFEITO VISUAL: Encolhe o Scale no X consoante o tempo que seguras
+            float squashX = Mathf.Lerp(initialScale.x, initialScale.x * 0.5f, chargeTimer / 1.5f);
+            transform.localScale = new Vector3(squashX, initialScale.y, initialScale.z);
+        }
+
+        if (wasReleased)
+        {
+            // DISPARO! Larga a força guardada.
+            savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
+            savedIsHighShot = isHighShotPressed;
+
+            // Abre a janela de timing de 0.2s para a bola bater em nós
+            swingTimer = 0.2f;
+            chargeTimer = 0f;
+
+            // Reseta o visual para o tamanho normal de forma instantânea ("Snap"!)
+            transform.localScale = initialScale;
         }
     }
 
@@ -121,7 +153,7 @@ public class PaddleController : MonoBehaviour
         }
         else
         {
-            // O jogador falhou o timing (ou estava só a segurar o botão). Rebate com a força base.
+            // O jogador falhou o timing. Rebate com a força base.
             finalJumpForce = baseVerticalForce;
             finalHorizontalForce = baseHorizontalForce;
         }
