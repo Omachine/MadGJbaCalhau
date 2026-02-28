@@ -44,7 +44,12 @@ public class AIPaddle : MonoBehaviour
 
     void Update()
     {
-        if (ballReference == null) return;
+        // NOVA LÓGICA: Se a bola ainda não foi encontrada (estava escondida pela cutscene), procura-a agora!
+        if (ballReference == null)
+        {
+            ballReference = FindObjectOfType<BouncingBall2D>();
+            if (ballReference == null) return;
+        }
 
         float moveY = 0f;
         float moveX = 0f;

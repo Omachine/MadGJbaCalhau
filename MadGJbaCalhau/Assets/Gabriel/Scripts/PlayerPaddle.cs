@@ -137,11 +137,13 @@ public class PlayerPaddle : MonoBehaviour
             savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
             savedIsHighShot = isHighShotPressed;
 
-            // NOVA LÓGICA SIMPLIFICADA DA CURVA:
-            // Ativa o efeito se soltaste o botão de curva E estavas a andar para cima ou para baixo nesse exato frame
-            savedIsCurveShot = wasReleasedCurve && (moveY != 0f);
+            // NOVA LÓGICA MAIS PERMISSIVA: 
+            // Basta soltar o botão de curva. A direção da curva usa o teu último movimento (lastMoveY) 
+            // em vez de exigir que estejas a pressionar a tecla no exato frame em que largas o botão.
+            savedIsCurveShot = wasReleasedCurve;
 
-            swingTimer = 0.2f;
+            // MARGEM DE ERRO AUMENTADA: O dobro do tempo (0.4s em vez de 0.2s) para a bola bater na raquete!
+            swingTimer = 0.4f;
             chargeTimer = 0f;
             transform.localScale = initialScale;
         }
@@ -165,7 +167,7 @@ public class PlayerPaddle : MonoBehaviour
                 finalJumpForce = baseVerticalForce;
                 finalHorizontalForce = baseHorizontalForce;
 
-                // Curva na direção (cima/baixo) em que o jogador estava a andar no momento em que largou
+                // Curva na última direção (cima/baixo) em que o jogador estava a andar
                 float curveDir = lastMoveY != 0 ? lastMoveY : 1f;
                 finalCurve = curveDir * baseCurveForce * savedMultiplier;
             }
@@ -180,7 +182,7 @@ public class PlayerPaddle : MonoBehaviour
         }
         else
         {
-            // O jogador falhou o timing da janela
+            // O jogador falhou o timing da janela (embora agora tenha muito mais margem de manobra!)
             finalJumpForce = baseVerticalForce;
             finalHorizontalForce = baseHorizontalForce;
         }
