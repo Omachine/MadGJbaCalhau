@@ -32,9 +32,9 @@ public class PingPongTable : MonoBehaviour, IInteractable
 
     [Header("Scene")]
     [Tooltip("Name of the ping pong scene to load.")]
-    [SerializeField] private string pingPongScene = "PingPong";
+    [SerializeField] private string pingPongScene = "PongPing";
     [Tooltip("Name of the scene to return to after the match.")]
-    [SerializeField] private string returnScene = "GoncaloScene";
+    [SerializeField] private string returnScene = "GonScene";
 
     [Header("Prompt")]
     [SerializeField] private GameObject interactPrompt;
