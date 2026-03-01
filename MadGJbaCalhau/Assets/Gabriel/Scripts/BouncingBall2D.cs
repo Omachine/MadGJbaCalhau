@@ -2,9 +2,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using TMPro;
+using UnityEngine.SceneManagement; // Necessário para mudar de Scene
 
 public class BouncingBall2D : MonoBehaviour
 {
+    [Header("Tournament Settings")]
+    public int pontosParaVencer = 11;
+    [Tooltip("Escreve aqui o nome exato da Scene do teu mapa/menu")]
+    public string cenaDoMapa = "Mapa";
+
     [Header("2D Physics (Table Movement)")]
     public Vector2 planeVelocity;
 
@@ -161,6 +167,29 @@ public class BouncingBall2D : MonoBehaviour
             player2Score++;
             if (player2ScoreText != null) player2ScoreText.text = player2Score.ToString();
             serveDirectionX = -1f;
+        }
+
+        // --- NOVA LÓGICA DE FIM DE PARTIDA (11 PONTOS) ---
+        if (player1Score >= pontosParaVencer)
+        {
+            UnityEngine.Debug.Log("JOGADOR 1 VENCEU O JOGO!");
+
+            // Sobe de nível no torneio!
+            int nivelAtual = PlayerPrefs.GetInt("TournamentLevel", 1);
+            PlayerPrefs.SetInt("TournamentLevel", nivelAtual + 1);
+            PlayerPrefs.Save();
+
+            // Volta para a cena do mapa
+            SceneManager.LoadScene(cenaDoMapa);
+            return; // Interrompe para não servir mais bolas
+        }
+        else if (player2Score >= pontosParaVencer)
+        {
+            UnityEngine.Debug.Log("OPONENTE VENCEU O JOGO!");
+
+            // Volta para a cena do mapa (Sem subir de nível porque perdemos)
+            SceneManager.LoadScene(cenaDoMapa);
+            return; // Interrompe para não servir mais bolas
         }
 
         StartCoroutine(WaitAndServe(serveDirectionX));

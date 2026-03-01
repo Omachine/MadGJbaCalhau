@@ -1,11 +1,18 @@
 using UnityEngine;
+using UnityEngine.UI; // Necessário para aceder a elementos de UI no Canvas
 
 public class AIPaddle : MonoBehaviour
 {
     [Header("AI Identity")]
     public bool isPlayerTwo = true;
 
-    [Header("AI Difficulty")]
+    [Header("Tournament Progression")]
+    [Tooltip("Arrasta os 5 sprites dos oponentes para aqui (Nível 1 ao 5)")]
+    public Sprite[] opponentSprites;
+    [Tooltip("Arrasta a Image do Canvas que mostra o Inimigo na Cutscene/UI")]
+    public Image opponentCanvasImage;
+
+    [Header("AI Difficulty (Auto-Set by Tournament)")]
     [Range(1, 5)]
     public int aiDifficulty = 1;
 
@@ -38,6 +45,20 @@ public class AIPaddle : MonoBehaviour
 
     void Start()
     {
+        // 1. LER O NÍVEL DO TORNEIO (Por defeito é 1 se for o primeiro jogo)
+        aiDifficulty = PlayerPrefs.GetInt("TournamentLevel", 1);
+
+        // Garante que a dificuldade não passa dos limites de 1 a 5
+        aiDifficulty = Mathf.Clamp(aiDifficulty, 1, 5);
+
+        // 2. ATUALIZAR O SPRITE DO OPONENTE NO CANVAS (UI)
+        if (opponentCanvasImage != null && opponentSprites != null && opponentSprites.Length > 0)
+        {
+            // O array começa em 0, por isso o Nível 1 é o índice 0
+            int spriteIndex = Mathf.Clamp(aiDifficulty - 1, 0, opponentSprites.Length - 1);
+            opponentCanvasImage.sprite = opponentSprites[spriteIndex];
+        }
+
         initialScale = transform.localScale;
         ballReference = FindObjectOfType<BouncingBall2D>();
     }
