@@ -40,6 +40,13 @@ public class WorkMinigame : MonoBehaviour
     [SerializeField] private GameObject      cooldownOverlay;
     [SerializeField] private TextMeshProUGUI cooldownText;
 
+    [Header("SFX")]
+    [SerializeField] private AudioSource keyboardAudioSource;
+    [Tooltip("Seconds of silence before keyboard sound stops.")]
+    [SerializeField] private float keyboardStopDelay = 0.15f;
+
+    private Coroutine _keyboardStopCoroutine;
+
     private readonly List<string> _activeWords = new List<string>();
     private int  _currentWordIndex;
     private int  _typedCount;
@@ -77,6 +84,7 @@ public class WorkMinigame : MonoBehaviour
         if (_playerStats != null)
             _playerStats.OnWorkPointsChanged -= OnPointsChanged;
         StopAllCoroutines();
+        StopKeyboardSound();
         // Do NOT call gameObject.SetActive(false) here — WorkTableUI controls panel visibility
     }
 
@@ -139,6 +147,9 @@ public class WorkMinigame : MonoBehaviour
         if (!char.IsLetter(c)) return;
         if (_onCooldown) return;
         if (_currentWordIndex >= _activeWords.Count) return;
+
+        // Play / keep playing keyboard SFX
+        PlayKeyboardSound();
 
         c = char.ToLower(c);
         char expected = _activeWords[_currentWordIndex][_typedCount];
@@ -237,5 +248,40 @@ public class WorkMinigame : MonoBehaviour
         string typed = word.Substring(0, _typedCount).ToUpper();
         string rest  = word.Substring(_typedCount).ToUpper();
         inputIndicatorText.text = "<color=#33DD66>" + typed + "</color><color=#888888>" + rest + "</color>";
+    }
+
+    // ── SFX ────────────────────────────────────────────────────────────────
+
+    private void PlayKeyboardSound()
+    {
+        if (keyboardAudioSource == null) return;
+
+        // Start playing if not already
+        if (!keyboardAudioSource.isPlaying)
+            keyboardAudioSource.Play();
+
+        // Reset the auto-stop timer
+        if (_keyboardStopCoroutine != null)
+            StopCoroutine(_keyboardStopCoroutine);
+        _keyboardStopCoroutine = StartCoroutine(StopKeyboardAfterDelay());
+    }
+
+    private void StopKeyboardSound()
+    {
+        if (_keyboardStopCoroutine != null)
+        {
+            StopCoroutine(_keyboardStopCoroutine);
+            _keyboardStopCoroutine = null;
+        }
+        if (keyboardAudioSource != null && keyboardAudioSource.isPlaying)
+            keyboardAudioSource.Stop();
+    }
+
+    private IEnumerator StopKeyboardAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(keyboardStopDelay);
+        if (keyboardAudioSource != null)
+            keyboardAudioSource.Stop();
+        _keyboardStopCoroutine = null;
     }
 }

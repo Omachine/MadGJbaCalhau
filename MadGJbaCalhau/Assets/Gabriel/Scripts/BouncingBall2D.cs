@@ -22,7 +22,14 @@ public class BouncingBall2D : MonoBehaviour
     public float gravity = 15f;
     public float jumpForce = 8f;
 
-    [Header("Visual References")]
+    [Header("SFX")]
+    public AudioSource audioSource;
+    [Tooltip("Sound when paddle hits the ball.")]
+    public AudioClip   paddleHitClip;
+    [Tooltip("Sound when ball hits the wall.")]
+    public AudioClip   wallHitClip;
+
+
     public Transform ballVisual;
     public Transform ballShadow;
 
@@ -270,8 +277,6 @@ public class BouncingBall2D : MonoBehaviour
             }
             else if (aiPaddle != null)
             {
-                // A BOLA AGORA PASSA A RESPONSABILIDADE PARA O C�REBRO DA IA
-                // E diz-lhe se � um servi�o ou n�o, para a IA decidir o que fazer.
                 aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva, wasServing);
                 isPaddleTwo = aiPaddle.isPlayerTwo;
             }
@@ -288,6 +293,10 @@ public class BouncingBall2D : MonoBehaviour
 
             hitNet = false;
             bouncesOnCurrentSide = 0;
+
+            // Play paddle hit SFX
+            if (audioSource != null && paddleHitClip != null)
+                audioSource.PlayOneShot(paddleHitClip);
         }
         else if (collision.CompareTag("Wall"))
         {
@@ -297,6 +306,10 @@ public class BouncingBall2D : MonoBehaviour
             bouncesOnCurrentSide = 0;
             pendingCurve = 0f;
             currentCurve = 0f;
+
+            // Play wall hit SFX
+            if (audioSource != null && wallHitClip != null)
+                audioSource.PlayOneShot(wallHitClip);
         }
     }
 
