@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI; // Necessário para aceder a elementos de UI no Canvas
+using UnityEngine.UI;
 
 public class AIPaddle : MonoBehaviour
 {
@@ -7,9 +7,7 @@ public class AIPaddle : MonoBehaviour
     public bool isPlayerTwo = true;
 
     [Header("Tournament Progression")]
-    [Tooltip("Arrasta os 5 sprites dos oponentes para aqui (Nível 1 ao 5)")]
     public Sprite[] opponentSprites;
-    [Tooltip("Arrasta a Image do Canvas que mostra o Inimigo na Cutscene/UI")]
     public Image opponentCanvasImage;
 
     [Header("AI Difficulty (Auto-Set by Tournament)")]
@@ -40,21 +38,16 @@ public class AIPaddle : MonoBehaviour
     private BouncingBall2D ballReference;
     private bool aiIsHolding = false;
 
-    // O cérebro da IA para evitar tremores:
-    private int plannedShot = 0; // 0 = Normal, 1 = Curve, 2 = HighShot
+    private int plannedShot = 0;
+    private bool ultimoServicoIAForte = false; // Memória movida para o cérebro da IA
 
     void Start()
     {
-        // 1. LER O NÍVEL DO TORNEIO (Lê a variável da sessão que reseta ao fechar o jogo)
         aiDifficulty = BouncingBall2D.nivelTorneioAtual;
-
-        // Garante que a dificuldade não passa dos limites de 1 a 5
         aiDifficulty = Mathf.Clamp(aiDifficulty, 1, 5);
 
-        // 2. ATUALIZAR O SPRITE DO OPONENTE NO CANVAS (UI)
         if (opponentCanvasImage != null && opponentSprites != null && opponentSprites.Length > 0)
         {
-            // O array começa em 0, por isso o Nível 1 é o índice 0
             int spriteIndex = Mathf.Clamp(aiDifficulty - 1, 0, opponentSprites.Length - 1);
             opponentCanvasImage.sprite = opponentSprites[spriteIndex];
         }
@@ -65,7 +58,6 @@ public class AIPaddle : MonoBehaviour
 
     void Update()
     {
-        // NOVA LÓGICA: Se a bola ainda não foi encontrada (estava escondida pela cutscene), procura-a agora!
         if (ballReference == null)
         {
             ballReference = FindObjectOfType<BouncingBall2D>();
@@ -84,26 +76,27 @@ public class AIPaddle : MonoBehaviour
         float targetY = transform.position.y;
         float targetX = transform.position.x;
 
-        // --- LÓGICA DE ALVOS DE MOVIMENTO ---
         if (isServingMode && ballOnMySide)
         {
             targetY = ballReference.transform.position.y;
 
-            // Se a IA está a fazer o movimento de bater (swingTimer ativo), atira-se CONTRA a bola!
-            if (swingTimer > 0f)
-            {
-                targetX = ballReference.transform.position.x + (isPlayerTwo ? -1.5f : 1.5f);
-            }
-            else
-            {
-                // Se ainda está a preparar, fica atrás da bola flutuante
-                targetX = ballReference.transform.position.x + (isPlayerTwo ? 1.5f : -1.5f);
-            }
+            if (swingTimer > 0f) targetX = ballReference.transform.position.x + (isPlayerTwo ? -1.5f : 1.5f);
+            else targetX = ballReference.transform.position.x + (isPlayerTwo ? 1.5f : -1.5f);
         }
         else if (ballComingTowards && ballReference.isPointActive)
         {
             float timeToReach = distX / Mathf.Max(Mathf.Abs(ballReference.planeVelocity.x), 1f);
-            targetY = ballReference.transform.position.y + (ballReference.planeVelocity.y * timeToReach);
+            float previsaoY = ballReference.transform.position.y + (ballReference.planeVelocity.y * timeToReach);
+
+            // --- CEGUEIRA DE EFEITO (Curve Blindness) ---
+            // Níveis 1, 2 e 3 não sabem ler o efeito da curva!
+            if (aiDifficulty <= 3 && Mathf.Abs(ballReference.currentCurve) > 0.1f)
+            {
+                // Engana o bot subtraindo a força da curva da sua previsão (ele acha que vai a direito)
+                previsaoY -= ballReference.currentCurve * timeToReach * 0.5f;
+            }
+
+            targetY = previsaoY;
 
             float defaultX = isPlayerTwo ? rightLimit : leftLimit;
             targetX = defaultX + (isPlayerTwo ? -(aiDifficulty * 0.5f) : (aiDifficulty * 0.5f));
@@ -117,7 +110,6 @@ public class AIPaddle : MonoBehaviour
         targetY = Mathf.Clamp(targetY, bottomLimit, topLimit);
         targetX = Mathf.Clamp(targetX, leftLimit, rightLimit);
 
-        // --- MOVIMENTO FLUIDO ---
         float currentSpeed = baseSpeed + (aiDifficulty * 2.5f);
         float errorMargin = 0.2f;
 
@@ -125,7 +117,6 @@ public class AIPaddle : MonoBehaviour
         if (Mathf.Abs(diffY) > errorMargin) moveY = Mathf.Sign(diffY);
 
         float diffX = targetX - transform.position.x;
-        // Durante o serviço OU em níveis difíceis, a IA avança no eixo X
         if (Mathf.Abs(diffX) > errorMargin && (aiDifficulty >= 2 || isServingMode)) moveX = Mathf.Sign(diffX);
 
         if (moveY != 0) lastMoveY = moveY;
@@ -138,7 +129,6 @@ public class AIPaddle : MonoBehaviour
 
         if (swingTimer > 0) swingTimer -= Time.deltaTime;
 
-        // --- LÓGICA DE ATAQUE DA IA ---
         float chargeDist = 4f + aiDifficulty;
         float hitDist = 1.5f;
 
@@ -147,7 +137,6 @@ public class AIPaddle : MonoBehaviour
 
         if (isServingMode && ballOnMySide)
         {
-            // Espera chegar à posição atrás da bola para começar a carregar
             if (distX < 2.5f && Mathf.Abs(diffY) < 1f)
             {
                 wantsToHold = true;
@@ -173,7 +162,6 @@ public class AIPaddle : MonoBehaviour
             }
         }
 
-        // --- EXECUTAR O ATAQUE ---
         if (wantsToHold && !aiIsHolding)
         {
             aiIsHolding = true;
@@ -210,7 +198,6 @@ public class AIPaddle : MonoBehaviour
             savedIsHighShot = (plannedShot == 2);
             savedIsCurveShot = (plannedShot == 1);
 
-            // Tempo suficiente para a IA conseguir "dar o salto" até bater na bola
             swingTimer = 0.4f;
             chargeTimer = 0f;
             aiIsHolding = false;
@@ -218,7 +205,8 @@ public class AIPaddle : MonoBehaviour
         }
     }
 
-    public void CalculateHitParameters(out float finalHorizontalForce, out float finalJumpForce, out float finalCurve)
+    // A assinatura deste método mudou para receber o "isServing" vindo da Bola!
+    public void CalculateHitParameters(out float finalHorizontalForce, out float finalJumpForce, out float finalCurve, bool isServing = false)
     {
         finalCurve = 0f;
 
@@ -247,6 +235,59 @@ public class AIPaddle : MonoBehaviour
         {
             finalJumpForce = baseVerticalForce;
             finalHorizontalForce = baseHorizontalForce;
+        }
+
+        // --- SISTEMA DE ERROS INTEGRADO NO CÉREBRO DA IA ---
+        if (isServing)
+        {
+            if (aiDifficulty <= 3)
+            {
+                // Probabilidade de falhar o serviço (Lvl 1 = ~45%, Lvl 2 = ~30%, Lvl 3 = ~15%)
+                float chanceDeErro = (4 - aiDifficulty) * 0.15f;
+                bool errarServico = Random.value < chanceDeErro;
+
+                if (ultimoServicoIAForte) errarServico = false;
+
+                if (!errarServico)
+                {
+                    finalHorizontalForce = Mathf.Min(finalHorizontalForce, baseHorizontalForce * 1.1f);
+                    ultimoServicoIAForte = false;
+                }
+                else
+                {
+                    ultimoServicoIAForte = true; // Permite a força a mais
+                }
+            }
+            else
+            {
+                finalHorizontalForce = Mathf.Min(finalHorizontalForce, baseHorizontalForce * 1.15f);
+                ultimoServicoIAForte = false;
+            }
+        }
+        else
+        {
+            // Erros de Rally ajustados para TODOS os níveis, exceto o Boss (Lvl 5)!
+            if (aiDifficulty <= 4)
+            {
+                float chanceDeErroRally = 0f;
+                if (aiDifficulty == 1) chanceDeErroRally = 0.40f;      // Lvl 1: 40% (erra quase sempre após poucas trocas)
+                else if (aiDifficulty == 2) chanceDeErroRally = 0.25f; // Lvl 2: 25% 
+                else if (aiDifficulty == 3) chanceDeErroRally = 0.10f; // Lvl 3: 10%
+                else if (aiDifficulty == 4) chanceDeErroRally = 0.05f; // Lvl 4: 5% (raramente erra sozinho)
+
+                if (Random.value < chanceDeErroRally)
+                {
+                    if (Random.value > 0.5f)
+                    {
+                        finalJumpForce *= 0.6f; // Fica na rede
+                        finalHorizontalForce *= 0.8f;
+                    }
+                    else
+                    {
+                        finalHorizontalForce *= 1.4f; // Manda para fora
+                    }
+                }
+            }
         }
     }
 }
