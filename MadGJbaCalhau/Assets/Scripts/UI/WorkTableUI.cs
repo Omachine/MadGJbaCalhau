@@ -7,9 +7,8 @@ using UnityEngine.UI;
 /// </summary>
 public class WorkTableUI : MonoBehaviour
 {
-    [Header("Panel")]
-    [SerializeField] private GameObject panel;
-    [SerializeField] private Button     closeButton;
+    [Header("Close Button")]
+    [SerializeField] private Button closeButton;
 
     [Header("Minigame")]
     [SerializeField] private WorkMinigame workMinigame;
@@ -17,13 +16,17 @@ public class WorkTableUI : MonoBehaviour
     private Player            _player;
     private PlayerInteraction _playerInteraction;
 
-    private void Awake()
+    // panel is always THIS GameObject — never use the inspector field
+    private GameObject Panel => gameObject;
+
+    private void Start()
     {
+        // Use Start instead of Awake so it runs even if object starts inactive
+        // (Start runs on first frame the object becomes active)
         if (closeButton != null)
             closeButton.onClick.AddListener(Close);
 
-        if (panel != null)
-            panel.SetActive(false);
+        Panel.SetActive(false);
     }
 
     public void Open()
@@ -37,14 +40,14 @@ public class WorkTableUI : MonoBehaviour
         if (_player != null)            _player.SetInputEnabled(false);
         if (_playerInteraction != null) _playerInteraction.SetInteractionEnabled(false);
 
-        if (panel != null) panel.SetActive(true);
+        Panel.SetActive(true);
         if (workMinigame != null) workMinigame.StartMinigame();
     }
 
     public void Close()
     {
         if (workMinigame != null) workMinigame.StopMinigame();
-        if (panel != null) panel.SetActive(false);
+        Panel.SetActive(false);
         if (_player != null)            _player.SetInputEnabled(true);
         if (_playerInteraction != null) _playerInteraction.SetInteractionEnabled(true);
     }

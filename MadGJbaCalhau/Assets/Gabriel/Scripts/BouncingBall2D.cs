@@ -173,14 +173,16 @@ public class BouncingBall2D : MonoBehaviour
         if (player1Score >= pontosParaVencer)
         {
             UnityEngine.Debug.Log("JOGADOR 1 VENCEU O JOGO!");
+            // Notify PlayerStats that this difficulty was beaten
+            PlayerStats.Instance.SetPingPongDifficultyBeaten(PingPongReturnData.playedDifficulty);
             nivelTorneioAtual++;
-            SceneManager.LoadScene(cenaDoMapa);
+            SceneManager.LoadScene(PingPongReturnData.returnScene);
             return;
         }
         else if (player2Score >= pontosParaVencer)
         {
             UnityEngine.Debug.Log("OPONENTE VENCEU O JOGO!");
-            SceneManager.LoadScene(cenaDoMapa);
+            SceneManager.LoadScene(PingPongReturnData.returnScene);
             return;
         }
 
@@ -268,8 +270,8 @@ public class BouncingBall2D : MonoBehaviour
             }
             else if (aiPaddle != null)
             {
-                // A BOLA AGORA PASSA A RESPONSABILIDADE PARA O CÉREBRO DA IA
-                // E diz-lhe se é um serviço ou não, para a IA decidir o que fazer.
+                // A BOLA AGORA PASSA A RESPONSABILIDADE PARA O Cï¿½REBRO DA IA
+                // E diz-lhe se ï¿½ um serviï¿½o ou nï¿½o, para a IA decidir o que fazer.
                 aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva, wasServing);
                 isPaddleTwo = aiPaddle.isPlayerTwo;
             }

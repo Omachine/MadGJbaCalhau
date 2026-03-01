@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
@@ -94,6 +95,26 @@ public class DayManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnEnable()  => SceneManager.sceneLoaded += OnSceneLoaded;
+    private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Re-find UI references in the newly loaded scene by tag/name
+        // and immediately hide the sleep panel so it doesn't stay stuck.
+        GameObject sp = GameObject.FindWithTag("SleepPanel");
+        if (sp != null)
+        {
+            sleepPanel = sp;
+            sleepPanel.SetActive(false);
+        }
+        else if (sleepPanel != null)
+        {
+            // Reference survived (same scene reload) — just hide it
+            sleepPanel.SetActive(false);
+        }
     }
 
     private void Start()

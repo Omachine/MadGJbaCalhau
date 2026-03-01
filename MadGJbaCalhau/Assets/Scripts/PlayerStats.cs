@@ -19,6 +19,9 @@ public class PlayerStats : MonoBehaviour
 
     public int WorkPoints { get; private set; }
 
+    // 0 = none beaten, 1 = easy beaten, 2 = medium beaten, 3 = hard beaten
+    public int HighestPingPongDifficulty { get; private set; }
+
     public event System.Action<int> OnWorkPointsChanged;
 
     private void Awake()
@@ -33,6 +36,15 @@ public class PlayerStats : MonoBehaviour
         WorkPoints += amount;
         OnWorkPointsChanged?.Invoke(WorkPoints);
         Debug.Log("[PlayerStats] Work points: " + WorkPoints + " (+" + amount + ")");
+    }
+
+    public void SetPingPongDifficultyBeaten(int difficulty)
+    {
+        if (difficulty > HighestPingPongDifficulty)
+        {
+            HighestPingPongDifficulty = difficulty;
+            Debug.Log("[PlayerStats] Ping pong difficulty beaten: " + difficulty);
+        }
     }
 }
 

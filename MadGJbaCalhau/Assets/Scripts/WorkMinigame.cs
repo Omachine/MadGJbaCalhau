@@ -55,7 +55,6 @@ public class WorkMinigame : MonoBehaviour
 
     public void StartMinigame()
     {
-        gameObject.SetActive(true);
         _onCooldown = false;
         if (cooldownOverlay != null) cooldownOverlay.SetActive(false);
 
@@ -78,7 +77,7 @@ public class WorkMinigame : MonoBehaviour
         if (_playerStats != null)
             _playerStats.OnWorkPointsChanged -= OnPointsChanged;
         StopAllCoroutines();
-        gameObject.SetActive(false);
+        // Do NOT call gameObject.SetActive(false) here — WorkTableUI controls panel visibility
     }
 
     private IEnumerator SubscribeNextFrame()

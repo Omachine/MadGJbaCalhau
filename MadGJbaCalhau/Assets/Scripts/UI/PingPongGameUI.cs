@@ -28,11 +28,17 @@ public class PingPongGameUI : MonoBehaviour
     [Header("Score UI")]
     [SerializeField] private TMP_Text scoreText;
 
+    [Header("Difficulty")]
+    [Tooltip("Score needed to beat each difficulty (index 0 unused, 1=Easy, 2=Medium, 3=Hard).")]
+    [SerializeField] private int[] scoreToWin = { 0, 5, 10, 15 };
+
     // ── Private state ──────────────────────────────────────────────────────
 
     private bool    _playing;
     private Vector2 _ballVelocity;
     private int     _score;
+    private int     _currentDifficulty;
+    private bool    _won;
 
     // Bounds (set from panel rect)
     private float _minY, _maxY, _minX, _maxX;
@@ -83,18 +89,25 @@ public class PingPongGameUI : MonoBehaviour
 
     // ── Public API ─────────────────────────────────────────────────────────
 
-    /// <summary>Opens the ping pong UI and starts the game.</summary>
-    public void StartGame()
+    /// <summary>Opens the ping pong UI and starts the game at the given difficulty.</summary>
+    public void StartGame(int difficulty = 1)
     {
+        _currentDifficulty = Mathf.Clamp(difficulty, 1, 3);
+        _won = false;
+
         if (panel != null)
             panel.SetActive(true);
+
+        // Scale ball speed with difficulty
+        float speedMultiplier = 1f + (_currentDifficulty - 1) * 0.4f; // 1x, 1.4x, 1.8x
+        ballSpeed = 250f * speedMultiplier;
 
         _score = 0;
         UpdateScore();
         ResetBall();
         _playing = true;
 
-        Time.timeScale = 0f; // use unscaledDeltaTime while paused
+        Time.timeScale = 0f;
     }
 
     /// <summary>Closes the UI and returns to normal play.</summary>
@@ -164,6 +177,7 @@ public class PingPongGameUI : MonoBehaviour
             pos.x = _maxX;
             _score++;
             UpdateScore();
+            CheckWin();
         }
 
         // Left — check paddle hit
@@ -187,10 +201,24 @@ public class PingPongGameUI : MonoBehaviour
         ball.anchoredPosition = pos;
     }
 
+    private void CheckWin()
+    {
+        if (_won) return;
+        int target = (_currentDifficulty < scoreToWin.Length) ? scoreToWin[_currentDifficulty] : 5;
+        if (_score >= target)
+        {
+            _won = true;
+            PlayerStats.Instance.SetPingPongDifficultyBeaten(_currentDifficulty);
+            Debug.Log("[PingPong] Won difficulty " + _currentDifficulty + "!");
+            StopGame();
+        }
+    }
+
     private void UpdateScore()
     {
-        if (scoreText != null)
-            scoreText.text = "Score: " + _score;
+        if (scoreText == null) return;
+        int target = (_currentDifficulty < scoreToWin.Length) ? scoreToWin[_currentDifficulty] : 5;
+        scoreText.text = "Score: " + _score + " / " + target;
     }
 }
 
