@@ -119,6 +119,11 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!4 &17644859 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+  m_PrefabInstance: {fileID: 118895194}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &22418773
 GameObject:
   m_ObjectHideFlags: 0
@@ -409,6 +414,67 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!1001 &118895194
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1071914247303472715, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_SortingOrder
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3208900076408901054, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_Name
+      value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.01642
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.70876
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8721608899966955898, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3ca7e2f8236025648af258c73e9f151f, type: 3}
 --- !u!1 &120313905
 GameObject:
   m_ObjectHideFlags: 0
@@ -785,7 +851,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MesaPingPongMapa
   nomeCenaPingPong: PongPing
-  returnScene: GoncaloScene
+  returnScene: GonScene
   difficulty: 1
   requiredWorkPoints: 100
   requiredPreviousDifficulty: 0
@@ -2645,7 +2711,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2eb212758c724f178dda3dce670a325c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
-  target: {fileID: 824757948}
+  target: {fileID: 17644859}
   leadAmount: 3
   leadSpeed: 4
   followSmoothing: 5
@@ -2789,7 +2855,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!70 &824757942
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -4234,7 +4300,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.04, y: 3.34, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 215732343}
@@ -4288,7 +4354,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: 6626051464634953487, guid: 782a631bb2ba3a848b2e4a09c1b82040, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -6687,3 +6753,4 @@ SceneRoots:
   - {fileID: 308797658}
   - {fileID: 210231208}
   - {fileID: 1201597411}
+  - {fileID: 118895194}
