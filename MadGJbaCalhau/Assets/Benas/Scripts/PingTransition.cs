@@ -40,5 +40,17 @@ public class PingTransition : MonoBehaviour
     {
         r += 1.8f * Time.deltaTime;
         material.SetFloat("_Radius", r);
+        if (r >= 1)
+        {
+            Time.timeScale = 0f;
+            isTransitioning = false;
+        }
+    }
+
+    public void ResumePlay()
+    {
+        GameObject.FindWithTag("HowCanvas").SetActive(false);
+        Time.timeScale = 1f;
+
     }
 }

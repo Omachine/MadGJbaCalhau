@@ -42,7 +42,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _EnableExternalAlpha: 0
-    - _Radius: 1
+    - _Radius: 1.0006776
     - _Softness: 0
     - _ZWrite: 0
     m_Colors:
