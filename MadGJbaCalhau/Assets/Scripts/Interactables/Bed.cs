@@ -7,21 +7,10 @@ using UnityEngine;
 public class Bed : MonoBehaviour, IInteractable
 {
     [Header("Prompt")]
-    [SerializeField] private GameObject interactPrompt;
+    [SerializeField] private GameObject interactPrompt; // kept for backwards compat
 
-    // ── IInteractable ──────────────────────────────────────────────────────
-
-    public void OnPlayerEnter()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(true);
-    }
-
-    public void OnPlayerExit()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(false);
-    }
+    public void OnPlayerEnter() { }
+    public void OnPlayerExit()  { }
 
     public void Interact()
     {

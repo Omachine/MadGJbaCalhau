@@ -1,26 +1,34 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// Handles detecting nearby IInteractable objects and triggering them.
-/// Attach this to the Player GameObject alongside Player.cs.
-/// </summary>
 public class PlayerInteraction : MonoBehaviour
 {
     [Header("Interaction Settings")]
     [SerializeField] private float     interactionRadius = 1.5f;
     [SerializeField] private LayerMask interactableLayer;
 
-    [Header("Prompt UI (optional)")]
+    [Header("Prompt")]
     [SerializeField] private GameObject interactPrompt;
+    [SerializeField] private float      promptYOffset = 1.8f;
+    [SerializeField] private float      promptXOffset = -0.5f;
 
     private IInteractable       _currentInteractable;
+    private Transform           _currentInteractableTransform;
     private InputSystem_Actions _input;
     private bool                _interactionEnabled = true;
 
     private void Awake()
     {
         _input = new InputSystem_Actions();
+    }
+
+    private void Start()
+    {
+        if (interactPrompt == null)
+            interactPrompt = GameObject.Find("InteractPrompt");
+
+        if (interactPrompt != null)
+            interactPrompt.SetActive(false);
     }
 
     private void OnEnable()
@@ -38,13 +46,18 @@ public class PlayerInteraction : MonoBehaviour
     private void Update()
     {
         DetectInteractable();
+
+        // Always move prompt to sit above the current interactable
+        if (_currentInteractableTransform != null && interactPrompt != null && interactPrompt.activeSelf)
+            interactPrompt.transform.position = new Vector3(
+                _currentInteractableTransform.position.x + promptXOffset,
+                _currentInteractableTransform.position.y + promptYOffset,
+                _currentInteractableTransform.position.z);
     }
 
-    // ── Input callback ─────────────────────────────────────────────────────
-
-    public void SetInteractionEnabled(bool enabled)
+    public void SetInteractionEnabled(bool state)
     {
-        _interactionEnabled = enabled;
+        _interactionEnabled = state;
     }
 
     private void OnInteractPerformed(InputAction.CallbackContext ctx)
@@ -53,37 +66,43 @@ public class PlayerInteraction : MonoBehaviour
         _currentInteractable?.Interact();
     }
 
-    // ── Detection ──────────────────────────────────────────────────────────
-
     private void DetectInteractable()
     {
-        Collider2D hit = Physics2D.OverlapCircle(transform.position, interactionRadius, interactableLayer);
+        int mask = interactableLayer.value != 0 ? interactableLayer.value : ~0;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactionRadius, mask);
 
-        if (hit != null && hit.TryGetComponent(out IInteractable interactable))
+        IInteractable found = null;
+        foreach (Collider2D hit in hits)
         {
-            if (_currentInteractable != interactable)
+            if (hit.gameObject == gameObject) continue;
+            if (hit.transform.IsChildOf(transform)) continue;
+
+            IInteractable interactable = hit.GetComponentInParent<IInteractable>();
+            if (interactable == null) hit.TryGetComponent(out interactable);
+            if (interactable != null) { found = interactable; break; }
+        }
+
+        if (found != null)
+        {
+            if (_currentInteractable != found)
             {
                 _currentInteractable?.OnPlayerExit();
-                _currentInteractable = interactable;
+                _currentInteractable          = found;
+                _currentInteractableTransform = (found as MonoBehaviour)?.transform;
                 _currentInteractable.OnPlayerEnter();
-                ShowPrompt(true);
-            }
-        }
-        else
-        {
-            if (_currentInteractable != null)
-            {
-                _currentInteractable.OnPlayerExit();
-                _currentInteractable = null;
-                ShowPrompt(false);
-            }
-        }
-    }
 
-    private void ShowPrompt(bool show)
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(show);
+                // Only show the world prompt for PingPongTable
+                if (interactPrompt != null)
+                    interactPrompt.SetActive(found is PingPongTable);
+            }
+        }
+        else if (_currentInteractable != null)
+        {
+            _currentInteractable.OnPlayerExit();
+            _currentInteractable          = null;
+            _currentInteractableTransform = null;
+            if (interactPrompt != null) interactPrompt.SetActive(false);
+        }
     }
 
 #if UNITY_EDITOR

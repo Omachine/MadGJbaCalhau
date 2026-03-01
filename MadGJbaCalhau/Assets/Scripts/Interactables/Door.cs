@@ -25,7 +25,7 @@ public class Door : MonoBehaviour, IInteractable
     [SerializeField] private float fadeOutDuration = 1.5f;
 
     [Header("Prompt")]
-    [SerializeField] private GameObject interactPrompt;
+    [SerializeField] private GameObject interactPrompt; // kept for backwards compat, not required
 
     // Brief cooldown so the player doesn't immediately re-trigger the destination door
     private static float _teleportCooldown;
@@ -33,17 +33,8 @@ public class Door : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────
 
-    public void OnPlayerEnter()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(true);
-    }
-
-    public void OnPlayerExit()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(false);
-    }
+    public void OnPlayerEnter() { }
+    public void OnPlayerExit()  { }
 
     public void Interact()
     {
@@ -111,6 +102,8 @@ public class Door : MonoBehaviour, IInteractable
         if (panelImage != null) SetAlpha(panelImage, 0f);
 
         if (transitionPanel != null) transitionPanel.SetActive(false);
+
+        // Always re-enable — even if something went wrong above
         if (player != null) player.SetInputEnabled(true);
     }
 

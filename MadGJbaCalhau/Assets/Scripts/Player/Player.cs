@@ -28,7 +28,13 @@ public class Player : MonoBehaviour
         _input = new InputSystem_Actions();
     }
 
-    private void OnEnable()  => _input.Player.Enable();
+    private void OnEnable()
+    {
+        _input.Player.Enable();
+        // Always re-enable input when the object becomes active
+        // so a broken coroutine can never permanently freeze the player
+        _inputEnabled = true;
+    }
     private void OnDisable() => _input.Player.Disable();
 
     private void Update()

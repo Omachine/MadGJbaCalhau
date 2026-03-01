@@ -39,15 +39,19 @@ public class DayManager : MonoBehaviour
 
     // ── UI ─────────────────────────────────────────────────────────────────
     [Header("UI – Time Bar")]
-    [Tooltip("Image set to Filled / Horizontal. Fills as weekend progresses.")]
-    [SerializeField] private Image timeProgressBar;
-    [SerializeField] private TextMeshProUGUI clockLabel;      // e.g. "Friday 18:30"
-    [SerializeField] private TextMeshProUGUI hoursLeftLabel;  // e.g. "34h left"
+    [Tooltip("The RectTransform of the FILL child inside the time bar mask (ProgressBar (1)).")]
+    [SerializeField] private RectTransform timeBarFill;
+    [SerializeField] private TextMeshProUGUI clockLabel;
+    [SerializeField] private TextMeshProUGUI hoursLeftLabel;
 
     [Header("UI – Tiredness Bar")]
-    [Tooltip("Image set to Filled / Horizontal. Fills as player gets tired.")]
+    [Tooltip("The RectTransform of the FILL child inside the tiredness bar mask.")]
+    [SerializeField] private RectTransform tirednessBarFill;
+    [SerializeField] private TextMeshProUGUI tirednessLabel;
+
+    // Keep Image references for ReconnectUI compatibility
+    [SerializeField] private Image timeProgressBar;
     [SerializeField] private Image tirednessBar;
-    [SerializeField] private TextMeshProUGUI tirednessLabel;  // e.g. "Tired 40%"
 
     [Header("End-of-Weekend Panel (optional)")]
     [SerializeField] private GameObject endPanel;
@@ -105,6 +109,9 @@ public class DayManager : MonoBehaviour
         // Re-find all UI references by GameObject name in the new scene
         ReconnectUI();
 
+        // Always re-enable player input — safety net for interrupted coroutines
+        StartCoroutine(ReenablePlayerNextFrame());
+
         // Restore player position if returning from ping pong
         if (PingPongReturnData.hasReturnPosition)
         {
@@ -113,6 +120,15 @@ public class DayManager : MonoBehaviour
                 PingPongReturnData.returnPositionX,
                 PingPongReturnData.returnPositionY));
         }
+    }
+
+    private System.Collections.IEnumerator ReenablePlayerNextFrame()
+    {
+        yield return null;
+        GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
+        if (playerGO == null) yield break;
+        Player p = playerGO.GetComponent<Player>();
+        if (p != null) p.SetInputEnabled(true);
     }
 
     private System.Collections.IEnumerator RestorePlayerPosition(float x, float y)
@@ -148,13 +164,21 @@ public class DayManager : MonoBehaviour
         var tiredGO = GameObject.Find("TirednessLabel");
         if (tiredGO != null) tirednessLabel = tiredGO.GetComponent<TextMeshProUGUI>();
 
-        // Time progress bar
-        var barGO = GameObject.Find("DayBarFill");
-        if (barGO != null) timeProgressBar = barGO.GetComponent<Image>();
+        // Time progress bar fill (RectTransform child named "ProgressBar (1)" or "DayBarFill")
+        var barGO = GameObject.Find("ProgressBar (1)") ?? GameObject.Find("DayBarFill");
+        if (barGO != null)
+        {
+            timeBarFill      = barGO.GetComponent<RectTransform>();
+            timeProgressBar  = barGO.GetComponent<Image>();
+        }
 
-        // Tiredness bar
+        // Tiredness bar fill
         var tiredBarGO = GameObject.Find("TirednessBarFill");
-        if (tiredBarGO != null) tirednessBar = tiredBarGO.GetComponent<Image>();
+        if (tiredBarGO != null)
+        {
+            tirednessBarFill = tiredBarGO.GetComponent<RectTransform>();
+            tirednessBar     = tiredBarGO.GetComponent<Image>();
+        }
 
         // End panel
         var endGO = GameObject.Find("EndPanel");
@@ -239,10 +263,30 @@ public class DayManager : MonoBehaviour
         _clockRunning = false;
         _elapsedGameHours = TotalGameHours;
         UpdateUI();
-
-        if (endPanel != null) endPanel.SetActive(true);
         OnWeekendOver?.Invoke();
         Debug.Log("[DayManager] Weekend over!");
+        StartCoroutine(GameOverRoutine());
+    }
+
+    private IEnumerator GameOverRoutine()
+    {
+        // Find or use end panel
+        if (endPanel == null)
+            endPanel = GameObject.Find("EndPanel");
+
+        if (endPanel != null)
+            endPanel.SetActive(true);
+
+        // Wait 3 seconds so the player can read "Out of Time"
+        yield return new WaitForSeconds(3f);
+
+        // Reset singleton state before reload
+        _elapsedGameHours = 0f;
+        _tiredness        = 0f;
+        _gameOver         = false;
+        _clockRunning     = false;
+
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     // ── UI ─────────────────────────────────────────────────────────────────
@@ -251,8 +295,10 @@ public class DayManager : MonoBehaviour
     {
         var (dayName, hour, minute) = GetCurrentTime();
 
-        if (timeProgressBar != null)
-            timeProgressBar.fillAmount = Mathf.Clamp01(_elapsedGameHours / TotalGameHours);
+        float timeProgress = Mathf.Clamp01(_elapsedGameHours / TotalGameHours);
+        SetBarFill(timeBarFill, timeProgress);
+        // fallback for old Image reference
+        if (timeProgressBar != null) timeProgressBar.fillAmount = timeProgress;
 
         if (clockLabel != null)
             clockLabel.text = $"{dayName}  {hour:D2}:{minute:D2}";
@@ -261,11 +307,22 @@ public class DayManager : MonoBehaviour
         if (hoursLeftLabel != null)
             hoursLeftLabel.text = $"{hoursLeft:F0}h left";
 
-        if (tirednessBar != null)
-            tirednessBar.fillAmount = _tiredness;
+        SetBarFill(tirednessBarFill, _tiredness);
+        if (tirednessBar != null) tirednessBar.fillAmount = _tiredness;
 
         if (tirednessLabel != null)
             tirednessLabel.text = $"Tired {_tiredness * 100f:F0}%";
+    }
+
+    /// <summary>
+    /// Sets the fill of a progress bar by scaling its anchorMax.x (0→1).
+    /// The fill RectTransform must have anchorMin=(0,0) anchorMax=(0,1) at rest,
+    /// and the script drives anchorMax.x to represent the fill amount.
+    /// </summary>
+    private static void SetBarFill(RectTransform fill, float t)
+    {
+        if (fill == null) return;
+        fill.anchorMax = new Vector2(Mathf.Clamp01(t), fill.anchorMax.y);
     }
 
     // ── Public utilities ───────────────────────────────────────────────────

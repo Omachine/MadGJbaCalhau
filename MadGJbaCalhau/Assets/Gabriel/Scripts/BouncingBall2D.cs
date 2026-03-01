@@ -173,9 +173,9 @@ public class BouncingBall2D : MonoBehaviour
         if (player1Score >= pontosParaVencer)
         {
             UnityEngine.Debug.Log("JOGADOR 1 VENCEU O JOGO!");
-            // Notify PlayerStats that this difficulty was beaten
+            // Record beaten difficulty — MesaPingPongMapa will advance to next on return
             PlayerStats.Instance.SetPingPongDifficultyBeaten(PingPongReturnData.playedDifficulty);
-            nivelTorneioAtual++;
+            nivelTorneioAtual = Mathf.Clamp(nivelTorneioAtual + 1, 1, 5);
             SceneManager.LoadScene(PingPongReturnData.returnScene);
             return;
         }

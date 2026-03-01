@@ -10,21 +10,10 @@ public class WorkTable : MonoBehaviour, IInteractable
     [SerializeField] private WorkTableUI workTableUI; // drag the WorkTableUI component here
 
     [Header("Prompt")]
-    [SerializeField] private GameObject interactPrompt;
+    [SerializeField] private GameObject interactPrompt; // kept for backwards compat
 
-    // ── IInteractable ──────────────────────────────────────────────────────
-
-    public void OnPlayerEnter()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(true);
-    }
-
-    public void OnPlayerExit()
-    {
-        if (interactPrompt != null)
-            interactPrompt.SetActive(false);
-    }
+    public void OnPlayerEnter() { }
+    public void OnPlayerExit()  { }
 
     public void Interact()
     {
