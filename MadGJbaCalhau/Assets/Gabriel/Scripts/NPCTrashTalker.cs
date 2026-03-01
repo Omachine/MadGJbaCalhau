@@ -5,28 +5,23 @@ using System.Collections;
 public class NPCTrashTalker : MonoBehaviour
 {
     [Header("UI Reference")]
-    [Tooltip("Arrasta o componente TextMeshPro que está por cima da cabeça do NPC")]
+    [Tooltip("Arrasta o componente TextMeshPro que está por cima do NPC")]
     public TextMeshPro textMesh;
 
     [Header("Trash Talk Settings")]
-    [Tooltip("Lista de frases que o NPC pode dizer à sorte")]
-    public string[] frasesDeTrashTalk = new string[]
-    {
-        "Vais ser esmagado no torneio!",
-        "Essa tua boca de um traço só não me mete medo!",
-        "Volta para o nível 1, novato!",
-        "Achas que tens o que é preciso para o Boss?",
-        "A minha raquete é mais rápida que a tua sombra.",
-        "Estás a tremer? Eu percebo."
-    };
+    [Tooltip("Lista de frases que o NPC pode dizer à sorte (Adiciona as frases no Inspector!)")]
+    public string[] frasesDeTrashTalk;
 
     [Header("Timers (Segundos)")]
     public float tempoMinimoEspera = 4f;
     public float tempoMaximoEspera = 12f;
+    [Tooltip("Velocidade com que cada letra aparece (Efeito Máquina de Escrever)")]
+    public float tempoPorLetra = 0.05f;
     public float tempoDeExibicao = 3f;
 
     private void Start()
     {
+        // Verifica se associaste o TextMeshPro no Inspector
         if (textMesh != null)
         {
             textMesh.text = ""; // Garante que começa calado
@@ -51,13 +46,24 @@ public class NPCTrashTalker : MonoBehaviour
             if (frasesDeTrashTalk.Length > 0)
             {
                 int indexRandom = Random.Range(0, frasesDeTrashTalk.Length);
-                textMesh.text = frasesDeTrashTalk[indexRandom];
+                string fraseEscolhida = frasesDeTrashTalk[indexRandom];
+
+                // Prepara o TextMeshPro para o efeito de aparecer gradualmente
+                textMesh.text = fraseEscolhida;
+                textMesh.maxVisibleCharacters = 0;
+
+                // 3. Efeito "Máquina de Escrever" (revela letra a letra)
+                for (int i = 0; i <= fraseEscolhida.Length; i++)
+                {
+                    textMesh.maxVisibleCharacters = i;
+                    yield return new WaitForSeconds(tempoPorLetra);
+                }
             }
 
-            // 3. Fica a exibir o texto durante X segundos
+            // 4. Fica a exibir o texto completo durante X segundos
             yield return new WaitForSeconds(tempoDeExibicao);
 
-            // 4. Esconde o texto e volta ao início do loop
+            // 5. Esconde o texto e volta ao início do loop
             textMesh.text = "";
         }
     }
