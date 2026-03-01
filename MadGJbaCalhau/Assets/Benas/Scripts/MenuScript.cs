@@ -17,7 +17,7 @@ public class MenuScript : MonoBehaviour
     }
     public void PlayLevel1()
     {
-        SceneManager.LoadScene("Level1");
+        SceneManager.LoadScene("GonScene");
     }
 
     public void Options()

@@ -36,6 +36,15 @@ public class Player : MonoBehaviour
         _horizontalInput = _inputEnabled ? _input.Player.Move.ReadValue<Vector2>().x : 0f;
         HandleFlip();
         UpdateAnimator();
+
+        if (_horizontalInput > 0f || _horizontalInput < 0f)
+        {
+            _animator.SetBool("isWalk", true);
+        }
+        else if (_horizontalInput == 0f)
+        {
+            _animator.SetBool("isWalk", false);
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────
