@@ -6,6 +6,9 @@ using UnityEngine.SceneManagement; // Necessário para mudar de Scene
 
 public class BouncingBall2D : MonoBehaviour
 {
+    // NOVO: Variável estática que guarda o nível apenas enquanto o jogo estiver aberto!
+    public static int nivelTorneioAtual = 1;
+
     [Header("Tournament Settings")]
     public int pontosParaVencer = 11;
     [Tooltip("Escreve aqui o nome exato da Scene do teu mapa/menu")]
@@ -174,10 +177,8 @@ public class BouncingBall2D : MonoBehaviour
         {
             UnityEngine.Debug.Log("JOGADOR 1 VENCEU O JOGO!");
 
-            // Sobe de nível no torneio!
-            int nivelAtual = PlayerPrefs.GetInt("TournamentLevel", 1);
-            PlayerPrefs.SetInt("TournamentLevel", nivelAtual + 1);
-            PlayerPrefs.Save();
+            // Sobe de nível no torneio (apenas na memória da sessão atual)
+            nivelTorneioAtual++;
 
             // Volta para a cena do mapa
             SceneManager.LoadScene(cenaDoMapa);

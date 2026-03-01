@@ -876,6 +876,7 @@ MonoBehaviour:
   isPlayerTwo: 1
   opponentSprites:
   - {fileID: 8430174517556797928, guid: 0bb38a65c37d95e42bd43b03eb019085, type: 3}
+  - {fileID: 3768612745405325003, guid: 8c3aab9741874d74b9b8d53cf1ac4009, type: 3}
   opponentCanvasImage: {fileID: 1569890547}
   aiDifficulty: 5
   baseSpeed: 10

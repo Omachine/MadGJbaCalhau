@@ -45,8 +45,8 @@ public class AIPaddle : MonoBehaviour
 
     void Start()
     {
-        // 1. LER O NÍVEL DO TORNEIO (Por defeito é 1 se for o primeiro jogo)
-        aiDifficulty = PlayerPrefs.GetInt("TournamentLevel", 1);
+        // 1. LER O NÍVEL DO TORNEIO (Lê a variável da sessão que reseta ao fechar o jogo)
+        aiDifficulty = BouncingBall2D.nivelTorneioAtual;
 
         // Garante que a dificuldade não passa dos limites de 1 a 5
         aiDifficulty = Mathf.Clamp(aiDifficulty, 1, 5);
