@@ -2,10 +2,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using TMPro;
-using UnityEngine.SceneManagement; // Necessário para mudar de Scene
+using UnityEngine.SceneManagement;
 
 public class BouncingBall2D : MonoBehaviour
 {
+    public static int nivelTorneioAtual = 1;
+
     [Header("Tournament Settings")]
     public int pontosParaVencer = 11;
     [Tooltip("Escreve aqui o nome exato da Scene do teu mapa/menu")]
@@ -70,7 +72,6 @@ public class BouncingBall2D : MonoBehaviour
     {
         if (isServing)
         {
-            // Altura mais baixa (1.5f) para garantir que a raquete alcança sempre a bola durante o serviço
             zHeight = 1.5f + Mathf.Sin(Time.time * 3f) * 0.2f;
             UpdateVisuals();
             return;
@@ -169,27 +170,18 @@ public class BouncingBall2D : MonoBehaviour
             serveDirectionX = -1f;
         }
 
-        // --- NOVA LÓGICA DE FIM DE PARTIDA (11 PONTOS) ---
         if (player1Score >= pontosParaVencer)
         {
             UnityEngine.Debug.Log("JOGADOR 1 VENCEU O JOGO!");
-
-            // Sobe de nível no torneio!
-            int nivelAtual = PlayerPrefs.GetInt("TournamentLevel", 1);
-            PlayerPrefs.SetInt("TournamentLevel", nivelAtual + 1);
-            PlayerPrefs.Save();
-
-            // Volta para a cena do mapa
+            nivelTorneioAtual++;
             SceneManager.LoadScene(cenaDoMapa);
-            return; // Interrompe para não servir mais bolas
+            return;
         }
         else if (player2Score >= pontosParaVencer)
         {
             UnityEngine.Debug.Log("OPONENTE VENCEU O JOGO!");
-
-            // Volta para a cena do mapa (Sem subir de nível porque perdemos)
             SceneManager.LoadScene(cenaDoMapa);
-            return; // Interrompe para não servir mais bolas
+            return;
         }
 
         StartCoroutine(WaitAndServe(serveDirectionX));
@@ -197,7 +189,6 @@ public class BouncingBall2D : MonoBehaviour
 
     private IEnumerator WaitAndServe(float serveSideX)
     {
-        // Esconde a bola fora do ecrã durante o tempo de espera para evitar colisões acidentais
         isServing = false;
         isPointActive = false;
         transform.position = new Vector3(0, 100f, 0);
@@ -262,7 +253,6 @@ public class BouncingBall2D : MonoBehaviour
 
         if (collision.CompareTag("Paddle"))
         {
-            // Se for um serviço, ignoramos o limite de altura para garantir que funciona sempre!
             if (zHeight > maxPaddleReach && !wasServing) return;
 
             PlayerPaddle playerPaddle = collision.GetComponent<PlayerPaddle>();
@@ -278,7 +268,9 @@ public class BouncingBall2D : MonoBehaviour
             }
             else if (aiPaddle != null)
             {
-                aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva);
+                // A BOLA AGORA PASSA A RESPONSABILIDADE PARA O CÉREBRO DA IA
+                // E diz-lhe se é um serviço ou não, para a IA decidir o que fazer.
+                aiPaddle.CalculateHitParameters(out forcaHorizontal, out forcaVertical, out forcaCurva, wasServing);
                 isPaddleTwo = aiPaddle.isPlayerTwo;
             }
 
