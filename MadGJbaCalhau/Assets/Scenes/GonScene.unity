@@ -4562,7 +4562,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PingPongTable
   difficulty: 2
-  requiredWorkPoints: 200
+  requiredWorkPoints: 100
   requiredPreviousDifficulty: 1
   pingPongScene: PongPing
   returnScene: GonScene

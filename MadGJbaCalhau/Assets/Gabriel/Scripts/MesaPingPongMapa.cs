@@ -6,8 +6,8 @@ using TMPro;
 public class MesaPingPongMapa : MonoBehaviour
 {
     [Header("Configurações de Transição")]
-    public string nomeCenaPingPong = "PingPong";
-    public string returnScene = "GoncaloScene";
+    public string nomeCenaPingPong = "PongPing";
+    public string returnScene = "GonScene";
 
     [Header("Difficulty Lock")]
     [Tooltip("1 = Easy, 2 = Medium, 3 = Hard")]
@@ -29,10 +29,20 @@ public class MesaPingPongMapa : MonoBehaviour
 
     void Update()
     {
-        if (jogadorEstaPerto && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+        if (jogadorEstaPerto)
         {
-            EntrarNoTorneio();
+            UpdateAvisoText();
+
+            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                EntrarNoTorneio();
         }
+    }
+
+    private void OnDisable()
+    {
+        jogadorEstaPerto = false;
+        if (avisoInteracaoUI != null)
+            avisoInteracaoUI.SetActive(false);
     }
 
     private bool IsUnlocked()
@@ -98,6 +108,17 @@ public class MesaPingPongMapa : MonoBehaviour
             jogadorEstaPerto = false;
             if (avisoInteracaoUI != null)
                 avisoInteracaoUI.SetActive(false);
+        }
+    }
+
+    private void Awake()
+    {
+        // Keep the text label always visible so players can see requirements
+        // from a distance — only the interact prompt toggles on/off
+        if (avisoText != null)
+        {
+            avisoText.gameObject.SetActive(true);
+            UpdateAvisoText();
         }
     }
 }

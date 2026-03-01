@@ -102,19 +102,66 @@ public class DayManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Re-find UI references in the newly loaded scene by tag/name
-        // and immediately hide the sleep panel so it doesn't stay stuck.
+        // Re-find all UI references by GameObject name in the new scene
+        ReconnectUI();
+
+        // Restore player position if returning from ping pong
+        if (PingPongReturnData.hasReturnPosition)
+        {
+            PingPongReturnData.hasReturnPosition = false;
+            StartCoroutine(RestorePlayerPosition(
+                PingPongReturnData.returnPositionX,
+                PingPongReturnData.returnPositionY));
+        }
+    }
+
+    private System.Collections.IEnumerator RestorePlayerPosition(float x, float y)
+    {
+        // Wait one frame for the scene to fully initialize
+        yield return null;
+        GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
+        if (playerGO != null)
+        {
+            playerGO.transform.position = new Vector3(x, y, playerGO.transform.position.z);
+            // Zero out rigidbody velocity so they don't fly off
+            Rigidbody2D rb = playerGO.GetComponent<Rigidbody2D>();
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+        }
+    }
+
+    private void ReconnectUI()
+    {
+        // Sleep panel
         GameObject sp = GameObject.FindWithTag("SleepPanel");
-        if (sp != null)
-        {
-            sleepPanel = sp;
-            sleepPanel.SetActive(false);
-        }
-        else if (sleepPanel != null)
-        {
-            // Reference survived (same scene reload) — just hide it
-            sleepPanel.SetActive(false);
-        }
+        if (sp != null) { sleepPanel = sp; sleepPanel.SetActive(false); }
+        else if (sleepPanel != null) sleepPanel.SetActive(false);
+
+        // Clock label
+        var clockGO = GameObject.Find("ClockLabel");
+        if (clockGO != null) clockLabel = clockGO.GetComponent<TextMeshProUGUI>();
+
+        // Hours left label
+        var hoursGO = GameObject.Find("HoursLeftLabel");
+        if (hoursGO != null) hoursLeftLabel = hoursGO.GetComponent<TextMeshProUGUI>();
+
+        // Tiredness label
+        var tiredGO = GameObject.Find("TirednessLabel");
+        if (tiredGO != null) tirednessLabel = tiredGO.GetComponent<TextMeshProUGUI>();
+
+        // Time progress bar
+        var barGO = GameObject.Find("DayBarFill");
+        if (barGO != null) timeProgressBar = barGO.GetComponent<Image>();
+
+        // Tiredness bar
+        var tiredBarGO = GameObject.Find("TirednessBarFill");
+        if (tiredBarGO != null) tirednessBar = tiredBarGO.GetComponent<Image>();
+
+        // End panel
+        var endGO = GameObject.Find("EndPanel");
+        if (endGO != null) endPanel = endGO;
+
+        // Refresh UI immediately with current values
+        UpdateUI();
     }
 
     private void Start()
