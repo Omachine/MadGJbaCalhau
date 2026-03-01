@@ -32,7 +32,7 @@ public class PingPongTable : MonoBehaviour, IInteractable
     private void Awake()
     {
         if (interactPrompt != null) interactPrompt.SetActive(false);
-        if (promptText != null)    promptText.text = "";
+        if (promptText != null)     promptText.gameObject.SetActive(false);
     }
 
     private void Update()
@@ -44,7 +44,7 @@ public class PingPongTable : MonoBehaviour, IInteractable
     {
         _playerNearby = false;
         if (interactPrompt != null) interactPrompt.SetActive(false);
-        if (promptText != null)     promptText.text = "";
+        if (promptText != null)     promptText.gameObject.SetActive(false);
     }
 
     // ── IInteractable ──────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ public class PingPongTable : MonoBehaviour, IInteractable
     {
         _playerNearby = true;
         if (interactPrompt != null) interactPrompt.SetActive(true);
+        if (promptText != null)     promptText.gameObject.SetActive(true);
         UpdatePromptText();
     }
 
@@ -60,7 +61,7 @@ public class PingPongTable : MonoBehaviour, IInteractable
     {
         _playerNearby = false;
         if (interactPrompt != null) interactPrompt.SetActive(false);
-        if (promptText != null)     promptText.text = "";
+        if (promptText != null)     promptText.gameObject.SetActive(false);
     }
 
     // ── Self-detection (works even without Interactable layer) ────────────
