@@ -38,6 +38,14 @@ public class CameraFollow : MonoBehaviour
     private bool  _boundsYActive;
     private float _minY, _maxY;
 
+    // Public read-only access for Player clamping
+    public bool  BoundsXActive => _boundsXActive;
+    public bool  BoundsYActive => _boundsYActive;
+    public float MinX => _minX;
+    public float MaxX => _maxX;
+    public float MinY => _minY;
+    public float MaxY => _maxY;
+
     // Runtime
     private Vector3 _currentVelocity;
     private float   _currentLeadX;
@@ -47,6 +55,28 @@ public class CameraFollow : MonoBehaviour
     {
         Instance = this;
         _cam = GetComponent<Camera>();
+    }
+
+    /// <summary>Called by Door after teleporting — instantly snaps the camera to the player's new position so it doesn't pan through empty space.</summary>
+    public void SnapToTarget()
+    {
+        if (target == null) return;
+
+        _currentLeadX    = 0f;
+        _currentVelocity = Vector3.zero;
+
+        float targetY = (lockY ? lockedY : target.position.y) + verticalOffset;
+        Vector3 snappedPos = new Vector3(target.position.x, targetY, transform.position.z);
+
+        float halfH = _cam != null ? _cam.orthographicSize   : 0f;
+        float halfW = _cam != null ? halfH * _cam.aspect     : 0f;
+
+        if (_boundsXActive)
+            snappedPos.x = Mathf.Clamp(snappedPos.x, _minX + halfW, _maxX - halfW);
+        if (_boundsYActive)
+            snappedPos.y = Mathf.Clamp(snappedPos.y, _minY + halfH, _maxY - halfH);
+
+        transform.position = snappedPos;
     }
 
     /// <summary>Called automatically by CameraBounds when the player enters a room.</summary>

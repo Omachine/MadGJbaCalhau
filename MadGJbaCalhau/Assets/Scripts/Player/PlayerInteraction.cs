@@ -16,6 +16,7 @@ public class PlayerInteraction : MonoBehaviour
 
     private IInteractable       _currentInteractable;
     private InputSystem_Actions _input;
+    private bool                _interactionEnabled = true;
 
     private void Awake()
     {
@@ -41,8 +42,14 @@ public class PlayerInteraction : MonoBehaviour
 
     // ── Input callback ─────────────────────────────────────────────────────
 
+    public void SetInteractionEnabled(bool enabled)
+    {
+        _interactionEnabled = enabled;
+    }
+
     private void OnInteractPerformed(InputAction.CallbackContext ctx)
     {
+        if (!_interactionEnabled) return;
         _currentInteractable?.Interact();
     }
 

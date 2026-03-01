@@ -15,7 +15,8 @@ public class Player : MonoBehaviour
     // Input
     private InputSystem_Actions _input;
     private float _horizontalInput;
-    private bool  _facingRight = true;
+    private bool  _facingRight   = true;
+    private bool  _inputEnabled  = true;
 
     // Animator parameter hash
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -32,15 +33,62 @@ public class Player : MonoBehaviour
 
     private void Update()
     {
-        _horizontalInput = _input.Player.Move.ReadValue<Vector2>().x;
+        _horizontalInput = _inputEnabled ? _input.Player.Move.ReadValue<Vector2>().x : 0f;
         HandleFlip();
         UpdateAnimator();
     }
 
+    // ── Public API ────────────────────────────────────────────────────────
+
+    /// <summary>Enable or disable player input (used during door transitions, cutscenes, etc.).</summary>
+    public void SetInputEnabled(bool enabled)
+    {
+        _inputEnabled = enabled;
+        if (!enabled)
+            _horizontalInput = 0f;
+    }
+
+    /// <summary>Run a coroutine on the player object so it survives scene/door transitions.</summary>
+    public void RunCoroutine(System.Collections.IEnumerator routine) => StartCoroutine(routine);
+
     private void FixedUpdate()
     {
+        if (!_inputEnabled)
+        {
+            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            return;
+        }
         float tirednessMultiplier = DayManager.Instance != null ? DayManager.Instance.SpeedMultiplier : 1f;
         _rb.linearVelocity = new Vector2(_horizontalInput * moveSpeed * tirednessMultiplier, _rb.linearVelocity.y);
+
+        ClampToBounds();
+    }
+
+    private void ClampToBounds()
+    {
+        if (CameraFollow.Instance == null) return;
+        Vector2 pos = _rb.position;
+        bool changed = false;
+
+        if (CameraFollow.Instance.BoundsXActive)
+        {
+            float clamped = Mathf.Clamp(pos.x, CameraFollow.Instance.MinX, CameraFollow.Instance.MaxX);
+            if (clamped != pos.x) { pos.x = clamped; changed = true; }
+        }
+        if (CameraFollow.Instance.BoundsYActive)
+        {
+            float clamped = Mathf.Clamp(pos.y, CameraFollow.Instance.MinY, CameraFollow.Instance.MaxY);
+            if (clamped != pos.y) { pos.y = clamped; changed = true; }
+        }
+
+        if (changed)
+        {
+            _rb.position = pos;
+            _rb.linearVelocity = new Vector2(
+                CameraFollow.Instance.BoundsXActive && (pos.x <= CameraFollow.Instance.MinX || pos.x >= CameraFollow.Instance.MaxX) ? 0f : _rb.linearVelocity.x,
+                _rb.linearVelocity.y
+            );
+        }
     }
 
     // ── Flip ───────────────────────────────────────────────────────────────
