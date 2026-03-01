@@ -16,18 +16,17 @@ public class PlayerPaddle : MonoBehaviour
     [Header("Attack Mechanics")]
     public float baseHorizontalForce = 12f;
     public float baseVerticalForce = 8f;
-    public float baseCurveForce = 25f; // Força base da curva da bola
+    public float baseCurveForce = 25f; 
     public float maxChargeMultiplier = 2.5f;
 
-    // Variáveis de estado
     private float chargeTimer = 0f;
     private float swingTimer = 0f;
     private float savedMultiplier = 1f;
     private bool savedIsHighShot = false;
     private bool savedIsCurveShot = false;
-    private float lastMoveY = 0f; // Guarda a última direção Y para saber para onde curvar
+    private float lastMoveY = 0f;
 
-    // Variável visual
+
     private Vector3 initialScale;
 
     void Start()
@@ -60,7 +59,6 @@ public class PlayerPaddle : MonoBehaviour
             }
         }
 
-        // Atualiza a direção vertical (necessário para curvar para cima ou baixo)
         if (moveY != 0) lastMoveY = moveY;
 
         Vector3 movement = new Vector3(moveX, moveY, 0) * speed * Time.deltaTime;
@@ -82,7 +80,6 @@ public class PlayerPaddle : MonoBehaviour
         bool wasReleasedCurve = false;
         bool isHighShotPressed = false;
 
-        // --- SISTEMA DE INPUTS COMPLETO ---
         if (!isPlayerTwo)
         {
             if (Mouse.current != null)
@@ -112,13 +109,11 @@ public class PlayerPaddle : MonoBehaviour
             }
         }
 
-        // --- LÓGICA DE CARREGAR (CHARGE) E ANIMAÇÃO ---
         if ((isHoldingPower && !wasReleasedPower) || (isHoldingCurve && !wasReleasedCurve))
         {
             chargeTimer += Time.deltaTime;
             chargeTimer = Mathf.Clamp(chargeTimer, 0f, 1.5f);
 
-            // EFEITO VISUAL: Esmaga no eixo Y apenas se estiver a segurar o botão da curva
             if (isHoldingCurve)
             {
                 float squashY = Mathf.Lerp(initialScale.y, initialScale.y * 0.5f, chargeTimer / 1.5f);
@@ -131,18 +126,13 @@ public class PlayerPaddle : MonoBehaviour
             }
         }
 
-        // --- LÓGICA DE LARGAR (RELEASE) ---
         if (wasReleasedPower || wasReleasedCurve)
         {
             savedMultiplier = 1f + (chargeTimer / 1.5f) * (maxChargeMultiplier - 1f);
             savedIsHighShot = isHighShotPressed;
 
-            // NOVA LÓGICA MAIS PERMISSIVA: 
-            // Basta soltar o botão de curva. A direção da curva usa o teu último movimento (lastMoveY) 
-            // em vez de exigir que estejas a pressionar a tecla no exato frame em que largas o botão.
             savedIsCurveShot = wasReleasedCurve;
 
-            // MARGEM DE ERRO AUMENTADA: O dobro do tempo (0.4s em vez de 0.2s) para a bola bater na raquete!
             swingTimer = 0.4f;
             chargeTimer = 0f;
             transform.localScale = initialScale;
@@ -157,23 +147,20 @@ public class PlayerPaddle : MonoBehaviour
         {
             if (savedIsHighShot)
             {
-                // TIRO ALTO (Balão)
                 finalJumpForce = baseVerticalForce * savedMultiplier * 1.5f;
                 finalHorizontalForce = baseHorizontalForce * 0.4f;
             }
             else if (savedIsCurveShot)
             {
-                // TIRO COM CURVA (Slice)
                 finalJumpForce = baseVerticalForce;
                 finalHorizontalForce = baseHorizontalForce;
 
-                // Curva na última direção (cima/baixo) em que o jogador estava a andar
+
                 float curveDir = lastMoveY != 0 ? lastMoveY : 1f;
                 finalCurve = curveDir * baseCurveForce * savedMultiplier;
             }
             else
             {
-                // TIRO PODEROSO (Normal/Smash)
                 finalJumpForce = baseVerticalForce;
                 finalHorizontalForce = baseHorizontalForce * savedMultiplier;
             }
@@ -182,7 +169,6 @@ public class PlayerPaddle : MonoBehaviour
         }
         else
         {
-            // O jogador falhou o timing da janela (embora agora tenha muito mais margem de manobra!)
             finalJumpForce = baseVerticalForce;
             finalHorizontalForce = baseHorizontalForce;
         }

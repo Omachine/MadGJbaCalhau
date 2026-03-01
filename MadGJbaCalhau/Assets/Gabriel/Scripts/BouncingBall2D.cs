@@ -2,11 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using TMPro;
-using UnityEngine.SceneManagement; // Necessário para mudar de Scene
+using UnityEngine.SceneManagement;
 
 public class BouncingBall2D : MonoBehaviour
 {
-    // NOVO: Variável estática que guarda o nível apenas enquanto o jogo estiver aberto!
     public static int nivelTorneioAtual = 1;
 
     [Header("Tournament Settings")]

@@ -88,11 +88,8 @@ public class AIPaddle : MonoBehaviour
             float timeToReach = distX / Mathf.Max(Mathf.Abs(ballReference.planeVelocity.x), 1f);
             float previsaoY = ballReference.transform.position.y + (ballReference.planeVelocity.y * timeToReach);
 
-            // --- CEGUEIRA DE EFEITO (Curve Blindness) ---
-            // Níveis 1, 2 e 3 não sabem ler o efeito da curva!
             if (aiDifficulty <= 3 && Mathf.Abs(ballReference.currentCurve) > 0.1f)
             {
-                // Engana o bot subtraindo a força da curva da sua previsão (ele acha que vai a direito)
                 previsaoY -= ballReference.currentCurve * timeToReach * 0.5f;
             }
 
@@ -237,12 +234,10 @@ public class AIPaddle : MonoBehaviour
             finalHorizontalForce = baseHorizontalForce;
         }
 
-        // --- SISTEMA DE ERROS INTEGRADO NO CÉREBRO DA IA ---
         if (isServing)
         {
             if (aiDifficulty <= 3)
             {
-                // Probabilidade de falhar o serviço (Lvl 1 = ~45%, Lvl 2 = ~30%, Lvl 3 = ~15%)
                 float chanceDeErro = (4 - aiDifficulty) * 0.15f;
                 bool errarServico = Random.value < chanceDeErro;
 
@@ -255,7 +250,7 @@ public class AIPaddle : MonoBehaviour
                 }
                 else
                 {
-                    ultimoServicoIAForte = true; // Permite a força a mais
+                    ultimoServicoIAForte = true; 
                 }
             }
             else
@@ -266,25 +261,24 @@ public class AIPaddle : MonoBehaviour
         }
         else
         {
-            // Erros de Rally ajustados para TODOS os níveis, exceto o Boss (Lvl 5)!
             if (aiDifficulty <= 4)
             {
                 float chanceDeErroRally = 0f;
-                if (aiDifficulty == 1) chanceDeErroRally = 0.40f;      // Lvl 1: 40% (erra quase sempre após poucas trocas)
-                else if (aiDifficulty == 2) chanceDeErroRally = 0.25f; // Lvl 2: 25% 
-                else if (aiDifficulty == 3) chanceDeErroRally = 0.10f; // Lvl 3: 10%
-                else if (aiDifficulty == 4) chanceDeErroRally = 0.05f; // Lvl 4: 5% (raramente erra sozinho)
+                if (aiDifficulty == 1) chanceDeErroRally = 0.40f;     
+                else if (aiDifficulty == 2) chanceDeErroRally = 0.25f;
+                else if (aiDifficulty == 3) chanceDeErroRally = 0.10f;
+                else if (aiDifficulty == 4) chanceDeErroRally = 0.05f;
 
                 if (Random.value < chanceDeErroRally)
                 {
                     if (Random.value > 0.5f)
                     {
-                        finalJumpForce *= 0.6f; // Fica na rede
+                        finalJumpForce *= 0.6f;
                         finalHorizontalForce *= 0.8f;
                     }
                     else
                     {
-                        finalHorizontalForce *= 1.4f; // Manda para fora
+                        finalHorizontalForce *= 1.4f;
                     }
                 }
             }
