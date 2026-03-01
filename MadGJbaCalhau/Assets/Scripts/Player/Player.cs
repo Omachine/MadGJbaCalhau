@@ -18,6 +18,12 @@ public class Player : MonoBehaviour
     private bool  _facingRight   = true;
     private bool  _inputEnabled  = true;
 
+    [Header("SFX")]
+    [SerializeField] private AudioSource footstepAudioSource;
+    [SerializeField] private AudioClip   footstepClip;
+
+    // ...existing code...
+
     // Animator parameter hash
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
 
@@ -127,5 +133,15 @@ public class Player : MonoBehaviour
     private void UpdateAnimator()
     {
         _animator.SetFloat(SpeedHash, Mathf.Abs(_horizontalInput));
+    }
+
+    // ── Animation Events ───────────────────────────────────────────────────
+
+    /// <summary>Called by walk animation events (footstep frames) to play step SFX.</summary>
+    public void PlayFootstep()
+    {
+        if (footstepAudioSource == null || footstepClip == null) return;
+        if (!_inputEnabled) return;
+        footstepAudioSource.PlayOneShot(footstepClip);
     }
 }
